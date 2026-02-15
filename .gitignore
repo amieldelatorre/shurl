@@ -2,5 +2,7 @@ shurl
 shurl.exe
 ignore-*
 
+.DS_Store
+
 .docker_data
 .env

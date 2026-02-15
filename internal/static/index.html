@@ -14,10 +14,21 @@
 </head>
 
 <body>
-    <div class="main">
-        <h1>Hello</h1>
-    </div><!--End of div class main-->
-    <script type="module" src="/_/index.js"></script>
+    <div id="index-main">
+        <header id="index-header">
+            <h1 id="index-logo">Shurl</h1>
+        </header>
+        <div id="index-content">
+            <form id="index-create-url-form">
+                <p id="index-create-url-description">Create your short url now!</p>
+                <input id="index-create-url-input" type="url" placeholder="https://yoururl.com/here"/>
+                <button id="index-create-url-submit-button" type="submit">
+                    Submit
+                </button>
+            </form>
+        </div><!--End of div id index-content-->
+    </div><!--End of div id main-->
+    <script src="/_/index.js"></script>
 </body>
 
 </html>
