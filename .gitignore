@@ -1,5 +1,6 @@
 shurl
 shurl.exe
+ignore-*
 
 .docker_data
 .env
