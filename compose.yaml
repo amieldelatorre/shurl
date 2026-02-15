@@ -1,0 +1,29 @@
+networks:
+  backend:
+    driver: bridge
+    # internal: true
+
+services:
+##################################### PostgreSQL #####################################
+  postgresql:
+    image: postgres:18.2
+    restart: unless-stopped
+    container_name: postgresql
+    security_opt:
+      - "no-new-privileges:true"
+    networks:
+      - backend
+    ports:
+      - 5432:5432
+    volumes:
+      - ./.docker_data/postgres:/var/lib/postgresql
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: shurl
+      POSTGRES_DB: shurl
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d shurl -U shurl"]
+      start_period: 10s
+      interval: 30s
+      retries: 3
+      timeout: 5s
