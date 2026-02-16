@@ -8,8 +8,8 @@ import (
 
 	"github.com/amieldelatorre/shurl/internal/config"
 	"github.com/amieldelatorre/shurl/internal/utils"
-	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 )
 
@@ -21,7 +21,7 @@ type PostgresDatabaseMigrations struct {
 }
 
 func NewPostgresDatabaseMigrations(ctx context.Context, config config.Config, logger utils.CustomJsonLogger) (*PostgresDatabaseMigrations, error) {
-	connstring := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", config.Database.Username, config.Database.Password, config.Database.Host, config.Database.Port, config.Database.Name)
+	connstring := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?target_session_attrs=read-write&connect_timeout=5", config.Database.Username, config.Database.Password, config.Database.Host, config.Database.Port, config.Database.Name)
 
 	dbPool, err := pgxpool.New(context.Background(), connstring)
 	if err != nil {
