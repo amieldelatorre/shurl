@@ -67,8 +67,6 @@ func ExecWithRetry[T any](ctx context.Context, logger utils.CustomJsonLogger, db
 	initialDelay := 5000 * time.Millisecond
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		res, err := func() (T, error) {
-			logger.Info(ctx, "SLeeping")
-			time.Sleep(5 * time.Second)
 			var noResult T
 			tx, err := dbPool.Begin(ctx)
 			if err != nil {
