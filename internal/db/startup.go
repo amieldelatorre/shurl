@@ -37,6 +37,6 @@ func GetDatabaseContext(ctx context.Context, config config.Config, logger utils.
 
 	logger.Info(ctx, "Successfully connected to the database")
 
-	dbContext := postgresql.NewPostreSQLContext(dbMigrations.DbPool)
+	dbContext := postgresql.NewPostreSQLContext(logger, dbMigrations.DbPool)
 	return dbContext
 }
