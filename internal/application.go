@@ -28,19 +28,7 @@ func NewApp(configFilePath string) App {
 	logger := utils.NewCustomJsonLogger(os.Stdout, slog.LevelDebug)
 	ctx := context.Background()
 
-	configFilePathInfo, err := os.Stat(configFilePath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			logger.ErrorExit(ctx, "Config file provided cannot be found", "filepath", configFilePath)
-		} else {
-			logger.ErrorExit(ctx, "Error checking config file provided", "error", err.Error())
-		}
-	}
-	if configFilePathInfo.IsDir() {
-		logger.ErrorExit(ctx, "Config file provided is a directory, not a file", "filepath", configFilePath)
-	}
-
-	config, err := config.LoadConfig(configFilePath)
+	config, err := config.LoadConfig(configFilePath, ctx, logger)
 	if err != nil {
 		logger.ErrorExit(ctx, err.Error())
 	}

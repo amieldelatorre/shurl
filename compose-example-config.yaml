@@ -1,0 +1,12 @@
+server:
+  domain: localhost
+  # port: 8080
+# In environment variables it is SERVER_PORT
+
+database:
+  driver: postgres
+  host: postgresql
+  # port: 5432
+  name: shurl
+  username: shurl
+  password: password

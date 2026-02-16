@@ -1,12 +1,15 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
@@ -62,11 +65,23 @@ func TrimConfigs(config Config) Config {
 	return config
 }
 
-func LoadConfig(configFilePath string) (*Config, error) {
+func LoadConfig(configFilePath string, ctx context.Context, logger utils.CustomJsonLogger) (*Config, error) {
 	v := viper.NewWithOptions(viper.ExperimentalBindStruct())
 	SetDefaults(v)
 
 	if configFilePath != "" {
+		configFilePathInfo, err := os.Stat(configFilePath)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				logger.ErrorExit(ctx, "Config file provided cannot be found", "filepath", configFilePath)
+			} else {
+				logger.ErrorExit(ctx, "Error checking config file provided", "error", err.Error())
+			}
+		}
+		if configFilePathInfo.IsDir() {
+			logger.ErrorExit(ctx, "Config file provided is a directory, not a file", "filepath", configFilePath)
+		}
+
 		fullFileName := filepath.Base(configFilePath)
 		fileExtension := strings.TrimPrefix(filepath.Ext(fullFileName), ".")
 

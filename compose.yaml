@@ -27,3 +27,24 @@ services:
       interval: 30s
       retries: 3
       timeout: 5s
+
+##################################### PostgreSQL #####################################
+  app:
+    build:
+      context: ./
+    pull_policy: build
+    develop:
+      watch:
+        - action: rebuild
+          path: ./
+    command:
+      - "shurl"
+      - "run"
+      - "-f"
+      - "/shurl/config.yaml"
+    networks:
+      - backend
+    ports:
+      - 8080:8080
+    volumes:
+      - ./compose-example-config.yaml:/shurl/config.yaml:ro
