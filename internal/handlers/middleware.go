@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/amieldelatorre/shurl/internal/types"
 	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/google/uuid"
 )
@@ -41,5 +44,16 @@ func (m *Middlware) AddRequestId(next http.Handler) http.Handler {
 		m.Logger.Debug(r.Context(), "Request id generated and added to context", string(utils.RequestIdName), id.String())
 		ctx := context.WithValue(r.Context(), utils.RequestIdName, id.String())
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (mu *Middlware) IdempotencyKeyRequired(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idempotencyKey := r.Header.Get(types.HeadersIdempotencyKey)
+		if strings.TrimSpace(idempotencyKey) == "" {
+			EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("Missing uuidv7 idempotency key header '%s'", types.HeadersIdempotencyKey)})
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }

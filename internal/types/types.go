@@ -6,6 +6,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const HeadersIdempotencyKey = "X-Idempotency-Key"
+
 type ShortUrl struct {
 	Id             uuid.UUID `json:"id"`
 	DestinationUrl string    `json:"destination_url"`

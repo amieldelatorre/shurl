@@ -15,7 +15,7 @@ var embedHtmlStatic embed.FS
 
 func RegisterRoutes(logger utils.CustomJsonLogger, ctx context.Context, mux *http.ServeMux, m handlers.Middlware, apiHandler handlers.ApiHandler, redirectionHandler handlers.RedirectionHandler) {
 	redirection := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(redirectionHandler.Redirect)))
-	postShortUrl := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(apiHandler.PostShortUrl)))
+	postShortUrl := m.RecoverPanic(m.AddRequestId(m.IdempotencyKeyRequired(http.HandlerFunc(apiHandler.PostShortUrl))))
 
 	htmlSubFs, err := fs.Sub(embedHtmlStatic, "static")
 	if err != nil {

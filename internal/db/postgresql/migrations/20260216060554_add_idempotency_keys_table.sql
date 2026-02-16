@@ -1,9 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS short_urls (
+CREATE TABLE IF NOT EXISTS idempotency_keys (
     id              UUID PRIMARY KEY
-  , destination_url TEXT NOT NULL 
-  , slug            TEXT NOT NULL UNIQUE-- slug is the part after the slash, https://shurl.invalid/<this part here>
+  , reference_id    UUID NOT NULL
   , created_at      TIMESTAMPTZ NOT NULL
 );
 -- +goose StatementEnd
