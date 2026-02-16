@@ -33,7 +33,14 @@ type PostShortUrlRequest struct {
 func (h *ApiHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
 	var req PostShortUrlRequest
 
-	err := json.NewDecoder(r.Body).Decode(&req)
+	idempotencyKeyString := r.Header.Get(types.HeadersIdempotencyKey)
+	idempotencyKey, err := uuid.Parse(idempotencyKeyString)
+	if err != nil {
+		EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: "idempotency key provided is not a valid UUID"})
+		return
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		errorCode, message := parseJsonDecodeError(err)
 		EncodeResponse[types.ErrorResponse](w, errorCode, types.ErrorResponse{Error: message})
@@ -69,7 +76,7 @@ func (h *ApiHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
 		Slug:           slug,
 	}
 
-	shortUrl, err := h.Db.CreateShortUrl(r.Context(), newShortUrl)
+	shortUrl, err := h.Db.CreateShortUrl(r.Context(), newShortUrl, idempotencyKey)
 	if err != nil {
 		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 		h.Logger.Error(r.Context(), err.Error())

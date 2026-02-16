@@ -11,6 +11,7 @@ import (
 
 	"github.com/amieldelatorre/shurl/internal/types"
 	"github.com/amieldelatorre/shurl/internal/utils"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,12 +30,45 @@ func (p *PostgreSQLContext) GetDatabaseVersion() int64 {
 	return 2
 }
 
-func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.CreateShortUrl) (*types.ShortUrl, error) {
+func (p *PostgreSQLContext) GetShortUrlById(ctx context.Context, id uuid.UUID) (*types.ShortUrl, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (*types.ShortUrl, error) {
+		var shortUrl types.ShortUrl
+
+		// slug should be unique
+		err := tx.QueryRow(ctx, `SELECT * FROM short_urls WHERE id = $1`, id).Scan(
+			&shortUrl.Id, &shortUrl.DestinationUrl, &shortUrl.Slug, &shortUrl.CreatedAt,
+		)
+		if err != nil && errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return &shortUrl, err
+	})
+}
+
+func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID) (*types.ShortUrl, error) {
 	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (*types.ShortUrl, error) {
 		var newShortUrl types.ShortUrl
-		err := p.dbPool.QueryRow(ctx,
+
+		var idempotencyKeyReferenceId uuid.UUID
+		err := tx.QueryRow(ctx,
+			`INSERT INTO idempotency_keys (id, reference_id, created_at)
+			 VALUES ($1, $2, NOW())
+			 ON CONFLICT (id) DO UPDATE set id = EXCLUDED.id
+			 RETURNING reference_id`, // EXCLUDED is a virtual table that that has the values we just tried to insert but couldn't due to the conflict
+			idempotencyKey, req.Id).Scan(&idempotencyKeyReferenceId)
+		if err != nil {
+			return nil, err
+		}
+
+		// if the reference id doesn't match the current request's id, send the old data back
+		if idempotencyKeyReferenceId != req.Id {
+			return p.GetShortUrlById(ctx, idempotencyKeyReferenceId)
+		}
+
+		err = tx.QueryRow(ctx,
 			`INSERT INTO short_urls (id, destination_url, slug, created_at)
 			 VALUES ($1, $2, $3, NOW())
+			 ON CONFLICT (id) DO UPDATE set id = EXCLUDED.id
 			 RETURNING id, destination_url, slug, created_at`,
 			req.Id, req.DestinationUrl, req.Slug).Scan(
 			&newShortUrl.Id, &newShortUrl.DestinationUrl, &newShortUrl.Slug, &newShortUrl.CreatedAt,
@@ -42,7 +76,7 @@ func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.Create
 		if err != nil {
 			return nil, err
 		}
-		return &newShortUrl, err
+		return &newShortUrl, nil
 	})
 }
 
@@ -51,7 +85,7 @@ func (p *PostgreSQLContext) GetShortUrlBySlug(ctx context.Context, slug string) 
 		var shortUrl types.ShortUrl
 
 		// slug should be unique
-		err := p.dbPool.QueryRow(ctx, `SELECT * FROM short_urls WHERE slug = $1`, slug).Scan(
+		err := tx.QueryRow(ctx, `SELECT * FROM short_urls WHERE slug = $1`, slug).Scan(
 			&shortUrl.Id, &shortUrl.DestinationUrl, &shortUrl.Slug, &shortUrl.CreatedAt,
 		)
 		if err != nil && errors.Is(err, pgx.ErrNoRows) {
