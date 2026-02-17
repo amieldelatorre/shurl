@@ -11,33 +11,14 @@
 
 body {
     /* background-color: #A8DADC; */
-    height: 100vh;
+    min-height: 100vh;
     width: 100%;
     white-space: normal;
     overflow-wrap: break-word;
 }
 
-.hide {
-    display: none;
-}
-
-.display-block {
-    display: block;
-}
-
-.display-inline-block {
-    display: inline-block;
-}
-
-.display-flex {
-    display: flex;
-}
-
-.justify-content-space-around {
-    justify-content: space-around;
-}
-
 #index-main {
+    height: 100%;
     padding-top: 20px
 }
 
@@ -51,9 +32,11 @@ body {
 }
 
 #index-content {
+    height: 100%;
     display: flex;
+    flex-direction: column;
     padding: 20px;
-    justify-content: space-around;
+    justify-content: flex-start;
 }
 
 #index-create-url-form {
@@ -64,6 +47,7 @@ body {
     padding: 10px;
     width: 100%;
     max-width: 900px;
+    margin: 0 auto 0 auto;
 }
 
 #index-create-url-description {
@@ -84,6 +68,86 @@ body {
     width: 150px;
 }
 
+#index-success-links {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 0 auto;
+    width: 95%;
+    max-width: 500px;
+    padding: 10px;
+}
+
+.successful-link-create {
+    position: relative;
+    padding: 5px;
+    border: solid 1px grey;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.successful-link-create-header {
+    display: inline-block;
+}
+
+.close-button {
+    position: absolute;
+    top: 0px;
+    right: 10px;
+    cursor: pointer;
+    border: none;
+    background-color: inherit;
+    line-height: 1;
+}
+
+.close-button * {
+    pointer-events: none;
+}
+
+.close-symbol {
+    display: block;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.short-url-created {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    align-items: center;
+    border: dotted 2px grey;
+    border-radius: 6px;
+    padding: 3px;
+    margin-bottom: 5px;
+}
+
+.short-url-created p {
+    display: inline-block;
+    border-radius: 6px;
+    margin-right: 5px;
+}
+
+.short-url-created button {
+    padding: 3px;
+    border: solid 1px grey;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.arrow-to-destination-svg {
+    max-height: 30px;
+    vertical-align: middle;
+}
+
+.destination-url {
+    display: inline-block;
+    max-width: calc(100% - 40px);
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 @keyframes spin {
     0% {
         transform: rotate(0deg);
@@ -92,4 +156,19 @@ body {
     100% {
         transform: rotate(360deg);
     }
+}
+
+@keyframes fade-out {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        height: 0;
+        padding: 0;
+    }
+}
+
+.fade-out {
+    animation: fade-out 0.5s ease-out forwards;
 }
