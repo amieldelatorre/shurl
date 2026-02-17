@@ -1,8 +1,12 @@
 import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm'
 
+
+/// template the api url
 const API_URL = "http://localhost:8080";
 const SHORT_URL_PATH = "api/v1/shorturl";
 const SHORT_URL_ENDPONT = new URL(SHORT_URL_PATH, API_URL);
+
+const INDEX_CREATE_URL_SUBMIT_BUTTON_ID = "index-create-url-submit-button";
  
 function createSuccessfulLinkBox(destinationUrl, shortUrl) {
     const successfulLinkCreateDiv = document.createElement("div");
@@ -37,8 +41,8 @@ function createSuccessfulLinkBox(destinationUrl, shortUrl) {
             setTimeout(() => {
                 copyButton.textContent = "copy";
             }, 5000);
-        }).catch((err) => {
-            console.error("failed to copy", err)
+        }).catch((error) => {
+            console.error("failed to copy", error);
         });
     })
 
@@ -60,13 +64,48 @@ function createSuccessfulLinkBox(destinationUrl, shortUrl) {
     successfulLinkCreateDiv.appendChild(arrowImg);
     successfulLinkCreateDiv.appendChild(destinationUrlSpan);
 
-    const parent = document.getElementById("index-success-links");
-    parent.prepend(successfulLinkCreateDiv);
+    return successfulLinkCreateDiv;
 }
+
+// function used to simulate long tasks
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function clearChildren(node) {
+    while (node.firstChild) {
+        node.removeChild(node.firstChild);
+    }
+}
+
+function createSpinner() {
+    // <span id="login-form-submit-button-loader" class="login-form-submit-button-loader" hidden></span>
+    const spinnerSpan = document.createElement("span");
+    spinnerSpan.classList.add("spinner")
+    return spinnerSpan
+}
+
+function changeButtonToLoading(buttonId) {
+    const button = document.getElementById(buttonId);
+    button.innerText = null;
+    // button.innerText = "Loading...";
+    button.disabled = true;
+}
+
+function changeButtonToNormal(button, textContent) {
+    clearChildren(button);
+    button.textContent = textContent;
+    button.disabled = false;
+}
+
 
 async function onSubmit(event) {
     event.preventDefault();
-    //disable button
+    changeButtonToLoading(INDEX_CREATE_URL_SUBMIT_BUTTON_ID);
+    const submittingButton = event.submitter;
+    submittingButton.appendChild(createSpinner());
+
+
 
     const destinationUrlInput = document.getElementById("index-create-url-input");
     const destinationUrl = destinationUrlInput.value;
@@ -75,8 +114,8 @@ async function onSubmit(event) {
         destination_url: destinationUrl
     });
 
-    console.log(data);
-    createSuccessfulLinkBox(destinationUrl, "http://localhost/_nothere");
+    // Simulate network wait
+    await sleep(1000);
     await fetch(SHORT_URL_ENDPONT, {
         method: "POST",
         headers: {
@@ -86,19 +125,24 @@ async function onSubmit(event) {
         body: data
     }).then(async response => {
         if (response.ok) {
+            const v = await response.json();
+            const successfulLinkCreateDiv = createSuccessfulLinkBox(v.destination_url, v.url);
+            const parent = document.getElementById("index-success-links");
+            parent.prepend(successfulLinkCreateDiv);
+
             destinationUrlInput.value = "";
-            // change button to success
-            // show url
-                // copy to clipboard
-            // enable button on closing pop up
+            changeButtonToNormal(submittingButton, "Submit");
+        } else if (response.status == 401) {
+            // show error pop up
+            console.log("Bad req");
         } else {
-            // show error
-            //enable button
+            // show error pop up
+            console.log("Something did not go well");
         }
 
     }).catch(error => {
-        //mention error somehow
-        //enable button
+        // show error pop up 
+        console.log(error);
     })
 }
 

@@ -64,6 +64,9 @@ body {
 }
 
 #index-create-url-submit-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     height: 30px;
     width: 150px;
 }
@@ -148,6 +151,17 @@ body {
     text-overflow: ellipsis;
 }
 
+.spinner {
+    display: block;
+    height: 20px;
+    width: 20px;
+    border: 4px solid darkgrey;
+    border-top: 4px solid white;
+    border-radius: 50%;
+    animation: spin 2s linear infinite;
+    background-color: transparent;
+}
+
 @keyframes spin {
     0% {
         transform: rotate(0deg);
@@ -169,6 +183,6 @@ body {
     }
 }
 
-.fade-out {
+.fade-out, .fade-out * {
     animation: fade-out 0.5s ease-out forwards;
 }
