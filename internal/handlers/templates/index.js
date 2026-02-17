@@ -1,8 +1,12 @@
+/**
+ * MIGHT BE BROKEN UP INTO MULTIPLE FILES IN THE FUTURE
+ */
+
 import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm'
 
 
 /// template the api url
-const API_URL = "http://localhost:8080";
+const API_URL = "{{.apiUrl}}";
 const SHORT_URL_PATH = "api/v1/shorturl";
 const SHORT_URL_ENDPONT = new URL(SHORT_URL_PATH, API_URL);
 

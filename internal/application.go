@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,15 +34,19 @@ func NewApp(configFilePath string) App {
 		logger.ErrorExit(ctx, err.Error())
 	}
 
+	baseUrl := getBaseUrlString(config.Server.HttpsEnabled, strings.TrimSpace(config.Server.Domain), strings.TrimSpace(config.Server.Port))
+
 	dbContext := db.GetDatabaseContext(ctx, *config, logger)
 
 	mux := http.NewServeMux()
 
 	middleware := handlers.NewMiddleware(logger)
-	apiHandler := handlers.NewApiHandler(logger, dbContext, *config)
+	apiHandler := handlers.NewApiHandler(logger, dbContext, baseUrl)
 	redirectionHandler := handlers.NewRedirectionHandler(logger, dbContext)
 
-	RegisterRoutes(logger, ctx, mux, middleware, apiHandler, redirectionHandler)
+	templateHandler := handlers.NewTemplateHandler(logger, baseUrl)
+
+	RegisterRoutes(logger, ctx, mux, middleware, apiHandler, redirectionHandler, templateHandler)
 
 	app := App{
 		Config: config,
@@ -87,4 +92,21 @@ func (a *App) Run() {
 
 	a.Logger.Info(ctx, fmt.Sprintf("Received signal '%+v', attempting to shutdown", sig))
 	a.Exit()
+}
+
+func getBaseUrlString(httpsEnabled bool, domain string, port string) string {
+	protocol := "http"
+	if httpsEnabled {
+		protocol = "https"
+	}
+
+	baseUrl := fmt.Sprintf("%s://%s", protocol, domain)
+
+	isNotStandardHttp := !httpsEnabled && port != "80"
+	isNotStandardHttps := httpsEnabled && port != "443"
+	if isNotStandardHttp || isNotStandardHttps {
+		baseUrl += fmt.Sprintf(":%s", port)
+	}
+
+	return baseUrl
 }

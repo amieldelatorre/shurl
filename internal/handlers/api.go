@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/amieldelatorre/shurl/internal/config"
 	"github.com/amieldelatorre/shurl/internal/db"
 	"github.com/amieldelatorre/shurl/internal/types"
 	"github.com/amieldelatorre/shurl/internal/utils"
@@ -17,13 +16,13 @@ import (
 )
 
 type ApiHandler struct {
-	Logger utils.CustomJsonLogger
-	Db     db.DbContext
-	Config config.Config
+	Logger  utils.CustomJsonLogger
+	Db      db.DbContext
+	BaseUrl string
 }
 
-func NewApiHandler(logger utils.CustomJsonLogger, dbcontext db.DbContext, config config.Config) ApiHandler {
-	return ApiHandler{Logger: logger, Db: dbcontext, Config: config}
+func NewApiHandler(logger utils.CustomJsonLogger, dbcontext db.DbContext, baseUrl string) ApiHandler {
+	return ApiHandler{Logger: logger, Db: dbcontext, BaseUrl: baseUrl}
 }
 
 type PostShortUrlRequest struct {
@@ -88,7 +87,7 @@ func (h *ApiHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
 		DestinationUrl: shortUrl.DestinationUrl,
 		Slug:           shortUrl.Slug,
 		CreatedAt:      shortUrl.CreatedAt,
-		Url:            createShortUrl(h.Config, slug),
+		Url:            createShortUrl(h.BaseUrl, slug),
 	}
 
 	if err = EncodeResponse[types.CreateShortUrlResponse](w, http.StatusCreated, response); err != nil {
@@ -141,6 +140,6 @@ func GenerateSlug() (string, error) {
 	return result.String(), nil
 }
 
-func createShortUrl(config config.Config, slug string) string {
-	return fmt.Sprintf("https://%s:%s/%s", config.Server.Domain, config.Server.Port, slug)
+func createShortUrl(baseUrl string, slug string) string {
+	return fmt.Sprintf("%s/%s", baseUrl, slug)
 }

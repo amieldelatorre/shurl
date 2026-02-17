@@ -23,7 +23,7 @@ type ServerConfig struct {
 	Port         string `mapstructure:"port" validate:"required"`
 	ListenAddr   string `mapstructure:"listenaddr"`
 	Domain       string `mapstructure:"domain" validate:"required"`
-	HttpsEnabled bool   `mapstructure:"https_enabled"`
+	HttpsEnabled bool   `mapstructure:"https_enabled"` // For when the application server is behind a reverse proxy that handles TLS. If a certificate is provided and TLS is handled by the application server, it will always be true.
 }
 
 type DatabaseConfig struct {
@@ -47,7 +47,7 @@ var (
 
 func SetDefaults(v *viper.Viper) {
 	v.SetDefault("server.port", "8080")
-	v.SetDefault("server.https_enabled", true)
+	v.SetDefault("server.https_enabled", false)
 	v.SetDefault("database.port", "5432")
 }
 

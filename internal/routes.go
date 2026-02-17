@@ -13,9 +13,10 @@ import (
 //go:embed static
 var embedHtmlStatic embed.FS
 
-func RegisterRoutes(logger utils.CustomJsonLogger, ctx context.Context, mux *http.ServeMux, m handlers.Middlware, apiHandler handlers.ApiHandler, redirectionHandler handlers.RedirectionHandler) {
+func RegisterRoutes(logger utils.CustomJsonLogger, ctx context.Context, mux *http.ServeMux, m handlers.Middlware, apiHandler handlers.ApiHandler, redirectionHandler handlers.RedirectionHandler, templateHandler handlers.TemplateHandler) {
 	redirection := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(redirectionHandler.Redirect)))
 	postShortUrl := m.RecoverPanic(m.AddRequestId(m.IdempotencyKeyRequired(http.HandlerFunc(apiHandler.PostShortUrl))))
+	getIndexJs := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(templateHandler.GetIndexJs)))
 
 	htmlSubFs, err := fs.Sub(embedHtmlStatic, "static")
 	if err != nil {
@@ -34,5 +35,6 @@ func RegisterRoutes(logger utils.CustomJsonLogger, ctx context.Context, mux *htt
 	 */
 	mux.Handle("GET /", fileServer)
 	mux.Handle("GET /_/", http.StripPrefix("/_/", fileServer))
+	mux.Handle("GET /_/index.js", http.StripPrefix("/_/", getIndexJs))
 	mux.Handle("GET /{slug}", redirection)
 }
