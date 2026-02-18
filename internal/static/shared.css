@@ -104,7 +104,7 @@ body {
 .successful-link-create {
     position: relative;
     padding: 5px;
-    border: solid 1px grey;
+    border: solid 1px #4caf50;
     border-radius: 12px;
     text-align: center;
 }

@@ -135,8 +135,6 @@ async function onSubmit(event) {
         destination_url: destinationUrl
     });
 
-    // Simulate network wait
-    await sleep(1000);
     await fetch(SHORT_URL_ENDPONT, {
         method: "POST",
         headers: {
