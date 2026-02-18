@@ -32,37 +32,45 @@ func (p *PostgreSQLContext) GetDatabaseVersion() int64 {
 
 func (p *PostgreSQLContext) GetShortUrlById(ctx context.Context, id uuid.UUID) (*types.ShortUrl, error) {
 	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (*types.ShortUrl, error) {
-		var shortUrl types.ShortUrl
-
-		// slug should be unique
-		err := tx.QueryRow(ctx, `SELECT * FROM short_urls WHERE id = $1`, id).Scan(
-			&shortUrl.Id, &shortUrl.DestinationUrl, &shortUrl.Slug, &shortUrl.CreatedAt,
-		)
-		if err != nil && errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		}
-		return &shortUrl, err
+		return p.getShortUrlByIdWithTx(ctx, tx, id)
 	})
+}
+
+func (p *PostgreSQLContext) getShortUrlByIdWithTx(ctx context.Context, tx pgx.Tx, id uuid.UUID) (*types.ShortUrl, error) {
+	var shortUrl types.ShortUrl
+
+	// slug should be unique
+	err := tx.QueryRow(ctx, `SELECT id, destination_url, slug, created_at FROM short_urls WHERE id = $1`, id).Scan(
+		&shortUrl.Id, &shortUrl.DestinationUrl, &shortUrl.Slug, &shortUrl.CreatedAt,
+	)
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	return &shortUrl, err
 }
 
 func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID) (*types.ShortUrl, error) {
 	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (*types.ShortUrl, error) {
 		var newShortUrl types.ShortUrl
+		idempotencyKeyUuid, err := uuid.NewV7()
+		if err != nil {
+			return nil, err
+		}
 
 		var idempotencyKeyReferenceId uuid.UUID
-		err := tx.QueryRow(ctx,
-			`INSERT INTO idempotency_keys (id, reference_id, created_at)
-			 VALUES ($1, $2, NOW())
-			 ON CONFLICT (id) DO UPDATE set id = EXCLUDED.id
+		err = tx.QueryRow(ctx,
+			`INSERT INTO idempotency_keys (id, i_key, reference_id, created_at, expires_at)
+			 VALUES ($1, $2, $3, NOW(), NOW() + INTERVAL '24 hours')
+			 ON CONFLICT (i_key) DO UPDATE set id = EXCLUDED.i_key
 			 RETURNING reference_id`, // EXCLUDED is a virtual table that that has the values we just tried to insert but couldn't due to the conflict
-			idempotencyKey, req.Id).Scan(&idempotencyKeyReferenceId)
+			idempotencyKeyUuid, idempotencyKey, req.Id).Scan(&idempotencyKeyReferenceId)
 		if err != nil {
 			return nil, err
 		}
 
 		// if the reference id doesn't match the current request's id, send the old data back
 		if idempotencyKeyReferenceId != req.Id {
-			return p.GetShortUrlById(ctx, idempotencyKeyReferenceId)
+			return p.getShortUrlByIdWithTx(ctx, tx, idempotencyKeyReferenceId)
 		}
 
 		err = tx.QueryRow(ctx,
@@ -85,7 +93,7 @@ func (p *PostgreSQLContext) GetShortUrlBySlug(ctx context.Context, slug string) 
 		var shortUrl types.ShortUrl
 
 		// slug should be unique
-		err := tx.QueryRow(ctx, `SELECT * FROM short_urls WHERE slug = $1`, slug).Scan(
+		err := tx.QueryRow(ctx, `SELECT id, destination_url, slug, created_at FROM short_urls WHERE slug = $1`, slug).Scan(
 			&shortUrl.Id, &shortUrl.DestinationUrl, &shortUrl.Slug, &shortUrl.CreatedAt,
 		)
 		if err != nil && errors.Is(err, pgx.ErrNoRows) {
@@ -98,7 +106,7 @@ func (p *PostgreSQLContext) GetShortUrlBySlug(ctx context.Context, slug string) 
 func ExecWithRetry[T any](ctx context.Context, logger utils.CustomJsonLogger, dbPool *pgxpool.Pool, fn func(pgx.Tx) (T, error)) (T, error) {
 	var noResult T
 	maxAttempts := 3
-	initialDelay := 5000 * time.Millisecond
+	initialDelay := 150 * time.Millisecond
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		res, err := func() (T, error) {
 			var noResult T
