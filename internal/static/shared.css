@@ -31,6 +31,26 @@ body {
     font-size: 50px;
 }
 
+#error-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.error-notification {
+    position: relative;
+    background-color: #f44336;
+    color: white;
+    padding: 30px 10px 10px 22px;
+    border-radius: 6px;
+    width: 250px;
+    animation: slideIn 0.5s ease-out;
+}
+
 #index-content {
     height: 100%;
     display: flex;
@@ -180,6 +200,18 @@ body {
         opacity: 0;
         height: 0;
         padding: 0;
+    }
+}
+
+@keyframes slideIn {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateX(0%);
+        opacity: 1;
     }
 }
 

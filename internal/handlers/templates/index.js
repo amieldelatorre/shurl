@@ -10,16 +10,11 @@ const API_URL = "{{.apiUrl}}";
 const SHORT_URL_PATH = "api/v1/shorturl";
 const SHORT_URL_ENDPONT = new URL(SHORT_URL_PATH, API_URL);
 
-const INDEX_CREATE_URL_SUBMIT_BUTTON_ID = "index-create-url-submit-button";
- 
-function createSuccessfulLinkBox(destinationUrl, shortUrl) {
-    const successfulLinkCreateDiv = document.createElement("div");
-    successfulLinkCreateDiv.classList.add("successful-link-create");
+const ERROR_CONTAINER_ID = "error-container";
+const ERROR_CONTAINER = document.getElementById(ERROR_CONTAINER_ID);
+const GENERIC_SERVER_ERROR_MESSAGE = "Something went wrong with the server, please try again later";
 
-    const successfulLinkCreateHeader = document.createElement("h4");
-    successfulLinkCreateHeader.classList.add("successful-link-create-header");
-    successfulLinkCreateHeader.textContent = "Successfully created short url!";
-
+function createCloseButton() {
     const closeButton = document.createElement("button");
     closeButton.classList.add("close-button");
     closeButton.ariaLabel = "Close";
@@ -28,6 +23,18 @@ function createSuccessfulLinkBox(destinationUrl, shortUrl) {
     closeSymbol.classList.add("close-symbol");
     closeSymbol.setAttribute("aria-hidden", "true");
     closeSymbol.innerHTML = "&times;";
+    
+    closeButton.appendChild(closeSymbol);
+    return closeButton;
+}
+ 
+function createSuccessfulLinkBox(destinationUrl, shortUrl) {
+    const successfulLinkCreateDiv = document.createElement("div");
+    successfulLinkCreateDiv.classList.add("successful-link-create");
+
+    const successfulLinkCreateHeader = document.createElement("h4");
+    successfulLinkCreateHeader.classList.add("successful-link-create-header");
+    successfulLinkCreateHeader.textContent = "Successfully created short url!";
 
     const shortUrlCreated = document.createElement("div");
     shortUrlCreated.classList.add("short-url-created");
@@ -58,17 +65,32 @@ function createSuccessfulLinkBox(destinationUrl, shortUrl) {
     destinationUrlSpan.classList.add("destination-url");
     destinationUrlSpan.innerHTML = destinationUrl;
 
-
-    closeButton.appendChild(closeSymbol);
     shortUrlCreated.appendChild(shortUrlP);
     shortUrlCreated.appendChild(copyButton);
     successfulLinkCreateDiv.appendChild(successfulLinkCreateHeader);
-    successfulLinkCreateDiv.appendChild(closeButton);
+    successfulLinkCreateDiv.appendChild(createCloseButton());
     successfulLinkCreateDiv.appendChild(shortUrlCreated);
     successfulLinkCreateDiv.appendChild(arrowImg);
     successfulLinkCreateDiv.appendChild(destinationUrlSpan);
 
     return successfulLinkCreateDiv;
+}
+
+function createErrorBox(messages) {
+    const box = document.createElement("div");
+    box.classList.add("error-notification");
+    box.appendChild(createCloseButton());
+
+    const errList = document.createElement("ul");
+    box.appendChild(errList);
+
+    for (let m of messages) {
+        let li = document.createElement("li");
+        li.textContent = m;
+        errList.appendChild(li);
+    }
+
+    return box
 }
 
 // function used to simulate long tasks
@@ -83,17 +105,15 @@ function clearChildren(node) {
 }
 
 function createSpinner() {
-    // <span id="login-form-submit-button-loader" class="login-form-submit-button-loader" hidden></span>
     const spinnerSpan = document.createElement("span");
     spinnerSpan.classList.add("spinner")
     return spinnerSpan
 }
 
-function changeButtonToLoading(buttonId) {
-    const button = document.getElementById(buttonId);
+function changeButtonToLoading(button) {
     button.innerText = null;
-    // button.innerText = "Loading...";
     button.disabled = true;
+    button.appendChild(createSpinner());
 }
 
 function changeButtonToNormal(button, textContent) {
@@ -105,11 +125,8 @@ function changeButtonToNormal(button, textContent) {
 
 async function onSubmit(event) {
     event.preventDefault();
-    changeButtonToLoading(INDEX_CREATE_URL_SUBMIT_BUTTON_ID);
     const submittingButton = event.submitter;
-    submittingButton.appendChild(createSpinner());
-
-
+    changeButtonToLoading(submittingButton);
 
     const destinationUrlInput = document.getElementById("index-create-url-input");
     const destinationUrl = destinationUrlInput.value;
@@ -136,17 +153,22 @@ async function onSubmit(event) {
 
             destinationUrlInput.value = "";
             changeButtonToNormal(submittingButton, "Submit");
-        } else if (response.status == 401) {
-            // show error pop up
-            console.log("Bad req");
+        } else if (response.status == 400) {
+            const v = await response.json()
+            ERROR_CONTAINER.prepend(createErrorBox([v.error]));
+            changeButtonToNormal(submittingButton, "Submit");
+            return
         } else {
-            // show error pop up
-            console.log("Something did not go well");
+            ERROR_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
+            changeButtonToNormal(submittingButton, "Submit");
+            return
         }
 
     }).catch(error => {
-        // show error pop up 
         console.log(error);
+        ERROR_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
+        changeButtonToNormal(submittingButton, "Submit");
+        return
     })
 }
 
