@@ -6,8 +6,8 @@ Shurl is a URL shortener written in go.
 - [x] Add retries on db operations
 - [x] Add idempotency key for create operations
 - [x] UI to create short urls
+- [x] Improve idempotency key by adding a hash for the request body to see if it is actually the same request
 - [ ] Retry on the js fetch requests
-- [ ] Improve idempotency key by adding a hash for the request body to see if it is actually the same request
 - [ ] Redis cache option
 - [ ] User accounts
     - [ ] Require Login

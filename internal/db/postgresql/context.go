@@ -49,7 +49,7 @@ func (p *PostgreSQLContext) getShortUrlByIdWithTx(ctx context.Context, tx pgx.Tx
 	return &shortUrl, err
 }
 
-func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID) (*types.ShortUrl, error) {
+func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID, request_hash string) (*types.ShortUrl, error) {
 	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (*types.ShortUrl, error) {
 		var newShortUrl types.ShortUrl
 		idempotencyKeyUuid, err := uuid.NewV7()
@@ -57,20 +57,32 @@ func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.Create
 			return nil, err
 		}
 
-		var idempotencyKeyReferenceId uuid.UUID
+		var storedReferenceId uuid.UUID
+		var storedRequestHash string
+		var idempotencyKeyInserted bool
 		err = tx.QueryRow(ctx,
-			`INSERT INTO idempotency_keys (id, i_key, reference_id, created_at, expires_at)
-			 VALUES ($1, $2, $3, NOW(), NOW() + INTERVAL '24 hours')
-			 ON CONFLICT (i_key) DO UPDATE set id = EXCLUDED.i_key
-			 RETURNING reference_id`, // EXCLUDED is a virtual table that that has the values we just tried to insert but couldn't due to the conflict
-			idempotencyKeyUuid, idempotencyKey, req.Id).Scan(&idempotencyKeyReferenceId)
+			`INSERT INTO idempotency_keys (id, i_key, reference_id, request_hash, created_at, expires_at)
+			 VALUES ($1, $2, $3, $4, NOW(), NOW() + INTERVAL '24 hours')
+			 ON CONFLICT (i_key) 
+			 DO UPDATE set i_key = EXCLUDED.i_key
+			 RETURNING reference_id, request_hash, (xmax = 0) AS inserted`,
+			// EXCLUDED is a virtual table that that has the values we just tried to insert but couldn't due to the conflict
+			// xmax stores the transaction id that deleted or locked a row
+			// if xmax = 0, that means there was an insert, if not 0, that means it updated
+			idempotencyKeyUuid, idempotencyKey, req.Id, request_hash).Scan(&storedReferenceId, &storedRequestHash, &idempotencyKeyInserted)
 		if err != nil {
 			return nil, err
 		}
 
-		// if the reference id doesn't match the current request's id, send the old data back
-		if idempotencyKeyReferenceId != req.Id {
-			return p.getShortUrlByIdWithTx(ctx, tx, idempotencyKeyReferenceId)
+		// if the idempotency key was not inserted (meaning that it was already used)
+		if !idempotencyKeyInserted {
+			// if the request hash matches the stored hash AND the reference ids match, return the existing object
+			if request_hash == storedRequestHash {
+				return p.getShortUrlByIdWithTx(ctx, tx, storedReferenceId)
+			}
+
+			// if the request hash doesn't match the stored hash OR the reference ids don't match, return error
+			return nil, &types.DuplicateIdempotencyKeyError{}
 		}
 
 		err = tx.QueryRow(ctx,

@@ -9,7 +9,7 @@ import (
 
 type DbContext interface {
 	GetDatabaseVersion() int64
-	CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID) (*types.ShortUrl, error)
+	CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID, request_hash string) (*types.ShortUrl, error)
 	GetShortUrlById(ctx context.Context, id uuid.UUID) (*types.ShortUrl, error)
 	GetShortUrlBySlug(ctx context.Context, slug string) (*types.ShortUrl, error)
 }

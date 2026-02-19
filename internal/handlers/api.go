@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -75,8 +76,16 @@ func (h *ApiHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
 		Slug:           slug,
 	}
 
-	shortUrl, err := h.Db.CreateShortUrl(r.Context(), newShortUrl, idempotencyKey)
+	requestHash := db.HashCreateShortUrlRequest(req.DestinationUrl)
+	shortUrl, err := h.Db.CreateShortUrl(r.Context(), newShortUrl, idempotencyKey, requestHash)
 	if err != nil {
+		var idempotencyKeyUsedError *types.DuplicateIdempotencyKeyError
+		if errors.As(err, &idempotencyKeyUsedError) {
+			EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("%s header value has already been used", types.HeadersIdempotencyKey)})
+			h.Logger.Error(r.Context(), err.Error())
+			return
+		}
+
 		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 		h.Logger.Error(r.Context(), err.Error())
 		return
@@ -87,7 +96,7 @@ func (h *ApiHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
 		DestinationUrl: shortUrl.DestinationUrl,
 		Slug:           shortUrl.Slug,
 		CreatedAt:      shortUrl.CreatedAt,
-		Url:            createShortUrl(h.BaseUrl, slug),
+		Url:            createShortUrl(h.BaseUrl, shortUrl.Slug),
 	}
 
 	if err = EncodeResponse[types.CreateShortUrlResponse](w, http.StatusCreated, response); err != nil {
