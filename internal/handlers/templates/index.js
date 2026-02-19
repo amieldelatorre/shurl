@@ -13,6 +13,22 @@ const SHORT_URL_ENDPONT = new URL(SHORT_URL_PATH, API_URL);
 const ERROR_CONTAINER_ID = "error-container";
 const ERROR_CONTAINER = document.getElementById(ERROR_CONTAINER_ID);
 const GENERIC_SERVER_ERROR_MESSAGE = "Something went wrong with the server, please try again later";
+const TOO_MANY_REQUESTS_MESSAGE = "Too many requests. Please try again in a few minutes."
+
+const SUCCESS_BUTTON_CLASS = "success-button";
+const ERROR_BUTTON_CLASS = "error-button";
+const BUTTON_NORMAL_TEXT = "Submit";
+const DEFAULT_BUTTON_DISABLED_AFTER_SUBMIT_MS = 1500;
+
+
+class FetchResponse {
+    json;
+    body;
+    isJson;
+    statusCode;
+    isError;
+    error;
+}
 
 function createCloseButton() {
     const closeButton = document.createElement("button");
@@ -122,6 +138,40 @@ function changeButtonToNormal(button, textContent) {
     button.disabled = false;
 }
 
+function changeButtonToSuccess(button, fn) {
+    clearChildren(button);
+    button.disabled = true;
+
+    const img = document.createElement("img");
+    img.classList.add("success-svg");
+    img.src = "/_/assets/check-circle-svgrepo-com.svg";
+    button.appendChild(img);
+
+    button.classList.add(SUCCESS_BUTTON_CLASS);
+    removeClassAfterTimeout(button, SUCCESS_BUTTON_CLASS, DEFAULT_BUTTON_DISABLED_AFTER_SUBMIT_MS, fn);
+}
+
+function changeButtonToFailed(button, fn) {
+    clearChildren(button);
+    button.disabled = true;
+
+    const img = document.createElement("img");
+    img.classList.add("error-svg");
+    img.src = "/_/assets/error-svgrepo-com.svg";
+    button.appendChild(img);
+    
+    button.classList.add(ERROR_BUTTON_CLASS);
+    removeClassAfterTimeout(button, ERROR_BUTTON_CLASS, DEFAULT_BUTTON_DISABLED_AFTER_SUBMIT_MS, fn);
+}
+
+function removeClassAfterTimeout(button, classToRemove, ms, fn) {
+    // using set timeout here and not sleep because this should happen in the background
+    setTimeout(() => {
+        button.classList.remove(classToRemove);
+        fn();
+    }, ms);
+}
+
 
 async function onSubmit(event) {
     event.preventDefault();
@@ -149,24 +199,34 @@ async function onSubmit(event) {
             const parent = document.getElementById("index-success-links");
             parent.prepend(successfulLinkCreateDiv);
 
+            changeButtonToSuccess(submittingButton, () => {
+                changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
+            });
+
             destinationUrlInput.value = "";
-            changeButtonToNormal(submittingButton, "Submit");
+            return;
         } else if (response.status == 400) {
             const v = await response.json()
             ERROR_CONTAINER.prepend(createErrorBox([v.error]));
-            changeButtonToNormal(submittingButton, "Submit");
-            return
+            changeButtonToFailed(submittingButton, () => {
+                changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
+            });
+            return;
         } else {
             ERROR_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
-            changeButtonToNormal(submittingButton, "Submit");
-            return
+            changeButtonToFailed(submittingButton, () => {
+                changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
+            });
+            return;
         }
 
     }).catch(error => {
         console.log(error);
         ERROR_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
-        changeButtonToNormal(submittingButton, "Submit");
-        return
+        changeButtonToFailed(submittingButton, () => {
+            changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
+        });
+        return;
     })
 }
 

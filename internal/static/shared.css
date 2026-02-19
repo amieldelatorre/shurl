@@ -15,10 +15,16 @@
 }
 
 body {
+    background-color: #222831;
+    color: #EEEEEE;
     min-height: 100vh;
     width: 100%;
     white-space: normal;
     overflow-wrap: break-word;
+}
+
+h1, h2, h3, h4 {
+    color: #00ADB5;
 }
 
 #index-main {
@@ -87,12 +93,15 @@ body {
     border-radius: 8px;
 }
 
-#index-create-url-submit-button {
+.index-create-url-submit-button {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 30px;
     width: 150px;
+    border: 1px solid #00ADB5;
+    border-radius: 8px;
+    cursor: pointer;
 }
 
 #index-success-links {
@@ -184,6 +193,28 @@ body {
     border-radius: 50%;
     animation: spin 2s linear infinite;
     background-color: transparent;
+}
+
+.success-button {
+    background: linear-gradient(to right, var(--success-colour) 0%, white 20%, white 40%, white 60%, white 80%, var(--success-colour) 100%);
+    cursor: not-allowed;
+}
+
+.error-button {
+    background: linear-gradient(to right, var(--error-colour) 0%, white 20%, white 40%, white 60%, white 80%, var(--error-colour) 100%);
+    cursor: not-allowed;
+}
+
+.success-svg {
+    background: transparent;
+    height: 30px;
+    width: 30px;
+}
+
+.error-svg {
+    background: transparent;
+    height: 30px;
+    width: 30px;
 }
 
 @keyframes spin {
