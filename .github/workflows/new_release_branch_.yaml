@@ -32,13 +32,13 @@ jobs:
           git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
 
           version=$(echo "${{ github.ref_name }}" | cut -d '/' -f 2)
-          file_paths=("./infra/docker-single-instance/compose.yaml")
+          file_paths=("./infra/docker/simple-docker-compose/compose.yaml")
           escaped_image_name=$(echo "${{ env.FULL_IMAGE_NAME }}" | sed -e 's/[\.]/\\&/g')
 
-          # for file_path in "${file_paths[@]}"; do
-          #   sed -i -E "s#(${escaped_image_name}:)([a-zA-Z0-9\_\.-]*)#\1${version}#g" "${file_path}"
-          #   git add "${file_path}"
-          # done
+          for file_path in "${file_paths[@]}"; do
+            sed -i -E "s#(${escaped_image_name}:)([a-zA-Z0-9\_\.-]*)#\1${version}#g" "${file_path}"
+            git add "${file_path}"
+          done
 
           # git commit -m "Bump to ${version} [skip ci]"
           # git push
@@ -51,6 +51,7 @@ jobs:
   build_images:
     needs: [add_version_information]
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # slightly longer here because cross platform builds are slow
     strategy:
       fail-fast: true
       matrix:
@@ -127,6 +128,7 @@ jobs:
   build_multi_arch_image:
     needs: [add_version_information, build_images]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       packages: write
 
