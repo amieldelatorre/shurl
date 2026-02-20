@@ -1,0 +1,205 @@
+name: New Release Branch Created
+
+on:
+  push:
+    branches:
+      - "releases/**"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: shurl
+  FULL_IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  add_version_information:
+    runs-on: ubuntu-latest
+    needs: [build_and_test_backend]
+    timeout-minutes: 10
+    outputs:
+      tag_version: ${{ steps.add_version.outputs.tag_version }}
+      latest_commit: ${{ steps.add_version.outputs.latest_commit }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Add version information and commit
+        id: add_version
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+          version=$(echo "${{ github.ref_name }}" | cut -d '/' -f 2)
+          file_paths=("./infra/docker-single-instance/compose.yaml")
+          escaped_image_name=$(echo "${{ env.FULL_IMAGE_NAME }}" | sed -e 's/[\.]/\\&/g')
+
+          # for file_path in "${file_paths[@]}"; do
+          #   sed -i -E "s#(${escaped_image_name}:)([a-zA-Z0-9\_\.-]*)#\1${version}#g" "${file_path}"
+          #   git add "${file_path}"
+          # done
+
+          # git commit -m "Bump to ${version} [skip ci]"
+          # git push
+
+          latest_commit=$(git rev-parse HEAD)
+
+          echo "tag_version=${version}" >> $GITHUB_OUTPUT
+          echo "latest_commit=${latest_commit}" >> $GITHUB_OUTPUT
+
+  build_images:
+    needs: [add_version_information]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        docker-platform-arch:
+          - amd64
+          - arm64
+    outputs:
+      docker-platform-arch-amd64-tags: ${{ steps.output.outputs.docker-platform-arch-amd64-tags }}
+      docker-platform-arch-arm64-tags: ${{ steps.output.outputs.docker-platform-arch-arm64-tags }}
+
+    permissions:
+      contents: read
+      packages: write
+      # attestations: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.add_version_information.outputs['latest_commit'] }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FULL_IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ needs.add_version_information.outputs['tag_version'] }}
+            type=raw,value=latest
+          flavor: |
+            latest=false
+            suffix=-${{ matrix.docker-platform-arch }}
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ./Dockerfile
+          platforms: linux/${{ matrix.docker-platform-arch }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          provenance: false # Disable provenance to avoid unknown/unknown
+
+      # Causes untagged images to be pushed
+      # - name: Generate Artifact Attestation
+      #   uses: actions/attest-build-provenance@v2
+      #   with:
+      #     subject-name: ${{ env.FULL_IMAGE_NAME }}
+      #     subject-digest: ${{ steps.push.outputs.digest }}
+      #     push-to-registry: true
+
+      - name: output
+        id: output
+        run: |
+          tags=(${{ steps.meta.outputs.tags }})
+          echo "${tags[@]}"
+          echo "docker-platform-arch-${{ matrix.docker-platform-arch }}-tags=${tags[@]}" >> $GITHUB_OUTPUT
+
+  build_multi_arch_image:
+    needs: [add_version_information, build_images]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata unified
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FULL_IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ needs.add_version_information.outputs['tag_version'] }}
+            type=raw,value=latest
+          flavor: |
+            latest=false
+
+      - name: Create and push multi-platform manifest
+        run: |
+          tags_list_amd64=(${{ needs.build_images.outputs['docker-platform-arch-amd64-tags'] }})
+          tags_list_arm64=(${{ needs.build_images.outputs['docker-platform-arch-arm64-tags'] }})
+          tags_list_unified=(${{ steps.meta.outputs.tags }})
+
+          cmd=(docker buildx imagetools create)
+          for tag in "${tags_list_unified[@]}"; do
+            cmd+=(--tag "${tag}")
+          done
+
+          cmd+=("${tags_list_amd64[@]}")
+          cmd+=("${tags_list_arm64[@]}")
+          echo "Final command:"
+          echo "    '${cmd[@]}'"
+
+          "${cmd[@]}"
+
+      - name: Inspect image
+        run: |
+          tags_list_unified=(${{ steps.meta.outputs.tags }})
+          echo "Inspecting images"
+          for tag in "${tags_list_unified[@]}"; do
+            echo "docker buildx imagetools inspect ${tag}"
+            docker buildx imagetools inspect "${tag}"
+          done
+
+  create_tag:
+    runs-on: ubuntu-latest
+    needs: [add_version_information, build_images, build_multi_arch_image]
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.add_version_information.outputs['latest_commit'] }}
+
+      - name: Create tag
+        run: |
+
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+          git tag -a ${{ needs.add_version_information.outputs['tag_version'] }} -m "New tag from branch ${{ github.ref_name }}" && git push origin ${{ needs.add_version_information.outputs['tag_version'] }}
