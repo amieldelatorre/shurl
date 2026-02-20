@@ -215,6 +215,7 @@ async function onSubmit(event) {
         return;
     }
 
+    // Chose not to handle timeout explicitly, it should be retryable anyway and means something is wrong with the server.
     if (result.isJson)
         ERROR_CONTAINER.prepend(createErrorBox([result.error.error]));
     else
@@ -226,7 +227,7 @@ async function onSubmit(event) {
     return;
 }
 
-async function fetchWithRetry(url, method, headers, body, maxAttempts = 3, retryBaseDelay = 150) {
+async function fetchWithRetry(url, method, headers, body, maxAttempts = 3, retryBaseDelay = 150, defaultTimeoutMs = 2500) {
     let result = new FetchResponse();
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -234,7 +235,8 @@ async function fetchWithRetry(url, method, headers, body, maxAttempts = 3, retry
             let response = await fetch(url, {
                 method: method,
                 headers: headers,
-                body: body
+                body: body,
+                signal: AbortSignal.timeout(defaultTimeoutMs)
             });
 
             if (response.ok) {
