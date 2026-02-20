@@ -6,7 +6,7 @@
         "request": "launch",
         "mode": "auto",
         "program": "${workspaceFolder}",
-        "args": ["run", "-f", "compose-example-config.yaml"]
+        "args": ["run", "-f", "example-config.yaml"]
     }
     ]
 }

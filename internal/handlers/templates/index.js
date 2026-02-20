@@ -20,6 +20,13 @@ const ERROR_BUTTON_CLASS = "error-button";
 const BUTTON_NORMAL_TEXT = "Submit";
 const DEFAULT_BUTTON_DISABLED_AFTER_SUBMIT_MS = 1500;
 
+const CONTENT_TYPE_JSON = "application/json";
+const HEADER_CONTENT_TYPE = "Content-Type";
+const HEADER_IDEMPOTENCY_KEY = "X-Idempotency-Key";
+const DEFAULT_HEADERS = {
+    [HEADER_CONTENT_TYPE]: CONTENT_TYPE_JSON
+}
+
 
 class FetchResponse {
     json;
@@ -185,49 +192,102 @@ async function onSubmit(event) {
         destination_url: destinationUrl
     });
 
-    await fetch(SHORT_URL_ENDPONT, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-Idempotency-Key": uuidv7(),
+    let result = await fetchWithRetry(
+        SHORT_URL_ENDPONT, 
+        "POST",
+        {
+            ...DEFAULT_HEADERS,
+            [HEADER_IDEMPOTENCY_KEY]: uuidv7(),
         },
-        body: data
-    }).then(async response => {
-        if (response.ok) {
-            const v = await response.json();
-            const successfulLinkCreateDiv = createSuccessfulLinkBox(v.destination_url, v.url);
-            const parent = document.getElementById("index-success-links");
-            parent.prepend(successfulLinkCreateDiv);
+        data
+    )
 
-            changeButtonToSuccess(submittingButton, () => {
-                changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
-            });
+    if (!result.isError) {
+        const successfulLinkCreateDiv = createSuccessfulLinkBox(result.json.destination_url, result.json.url);
+        const parent = document.getElementById("index-success-links");
+        parent.prepend(successfulLinkCreateDiv);
 
-            destinationUrlInput.value = "";
-            return;
-        } else if (response.status == 400) {
-            const v = await response.json()
-            ERROR_CONTAINER.prepend(createErrorBox([v.error]));
-            changeButtonToFailed(submittingButton, () => {
-                changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
-            });
-            return;
-        } else {
-            ERROR_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
-            changeButtonToFailed(submittingButton, () => {
-                changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
-            });
-            return;
-        }
-
-    }).catch(error => {
-        console.log(error);
-        ERROR_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
-        changeButtonToFailed(submittingButton, () => {
+        changeButtonToSuccess(submittingButton, () => {
             changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
         });
+
+        destinationUrlInput.value = "";
         return;
-    })
+    }
+
+    if (result.isJson)
+        ERROR_CONTAINER.prepend(createErrorBox([result.error.error]));
+    else
+        ERROR_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
+
+    changeButtonToFailed(submittingButton, () => {
+        changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
+    });
+    return;
+}
+
+async function fetchWithRetry(url, method, headers, body, maxAttempts = 3, retryBaseDelay = 150) {
+    let result = new FetchResponse();
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            let response = await fetch(url, {
+                method: method,
+                headers: headers,
+                body: body
+            });
+
+            if (response.ok) {
+                result.isError = false;
+                result.statusCode = response.status;
+                result = addResponseBody(result, response);
+                return result;
+            } 
+            result.isError = true;
+            
+            if (!isRetryable(response.statusCode)) {
+                result.statusCode = response.status;
+                result = await addResponseBody(result, response);
+                return result;
+            }
+
+            // having trouble figuring out how to differentiate between error types, so its all just retryable
+            result = addResponseBody(result, response);
+
+            if (attempt != maxAttempts - 1) {
+                let delay = retryBaseDelay * Math.pow(2, attempt);
+                let jitter = Math.floor(Math.random() * (delay/4));
+
+                await sleep(delay + jitter);
+            }
+
+        } catch (error) {
+            // having trouble figuring out how to differentiate between error types, so its all just retryable
+            result.isError = true;
+            result.error = error;
+        }
+    }
+    return result;
+}
+
+async function addResponseBody(result, fetchResult) {
+    const contentType = fetchResult.headers.get(HEADER_CONTENT_TYPE);
+    if (contentType == CONTENT_TYPE_JSON) {
+        result.isJson = true;
+        result.json = await fetchResult.json();
+    }
+    else {
+        result.isJson = false;
+        result.body = await fetchResult.text();
+    }
+
+    return result;
+}
+
+function isRetryable(statusCode) {
+    if (statusCode == 429) {
+        return true;
+    }
 }
 
 document.addEventListener("DOMContentLoaded", () => {

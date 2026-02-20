@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"embed"
-	"html/template"
 	"net/http"
+	"text/template"
 
 	"github.com/amieldelatorre/shurl/internal/types"
 	"github.com/amieldelatorre/shurl/internal/utils"
