@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type EncodeResponseError struct{}
@@ -19,4 +21,13 @@ func EncodeResponse[T any](w http.ResponseWriter, statusCode int, v any) error {
 	}
 
 	return nil
+}
+
+func EncodeValidationError(err validator.ValidationErrors) []string {
+	var validationErrors []string
+
+	for _, e := range err {
+		validationErrors = append(validationErrors, e.Error())
+	}
+	return validationErrors
 }

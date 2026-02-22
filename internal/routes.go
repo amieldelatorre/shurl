@@ -13,9 +13,19 @@ import (
 //go:embed static
 var embedHtmlStatic embed.FS
 
-func RegisterRoutes(logger utils.CustomJsonLogger, ctx context.Context, mux *http.ServeMux, m handlers.Middlware, apiHandler handlers.ApiHandler, redirectionHandler handlers.RedirectionHandler, templateHandler handlers.TemplateHandler) {
+func RegisterRoutes(
+	logger utils.CustomJsonLogger,
+	ctx context.Context,
+	mux *http.ServeMux,
+	m handlers.Middlware,
+	apiShortUrlHandler handlers.ApiShortUrlHandler,
+	apiUserHandler handlers.ApiUserHandler,
+	redirectionHandler handlers.RedirectionHandler,
+	templateHandler handlers.TemplateHandler,
+) {
 	redirection := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(redirectionHandler.Redirect)))
-	postShortUrl := m.RecoverPanic(m.AddRequestId(m.IdempotencyKeyRequired(http.HandlerFunc(apiHandler.PostShortUrl))))
+	postShortUrl := m.RecoverPanic(m.AddRequestId(m.IdempotencyKeyRequired(http.HandlerFunc(apiShortUrlHandler.PostShortUrl))))
+	postUser := m.RecoverPanic(m.AddRequestId(m.AllowRegistration(m.IdempotencyKeyRequired(http.HandlerFunc(apiUserHandler.PostUser)))))
 	getIndexJs := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(templateHandler.GetIndexJs)))
 
 	htmlSubFs, err := fs.Sub(embedHtmlStatic, "static")
@@ -25,6 +35,7 @@ func RegisterRoutes(logger utils.CustomJsonLogger, ctx context.Context, mux *htt
 	fileServer := http.FileServer(http.FS(htmlSubFs))
 
 	mux.Handle("POST /api/v1/shorturl", postShortUrl)
+	mux.Handle("POST /api/v1/user", postUser)
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})

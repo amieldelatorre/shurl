@@ -40,13 +40,14 @@ func NewApp(configFilePath string) App {
 
 	mux := http.NewServeMux()
 
-	middleware := handlers.NewMiddleware(logger)
-	apiHandler := handlers.NewApiHandler(logger, dbContext, baseUrl)
+	middleware := handlers.NewMiddleware(logger, *config)
+	apiHandler := handlers.NewApiShortUrlHandler(logger, dbContext, baseUrl)
+	apiUserHandler := handlers.NewApiUserHandler(logger, dbContext)
 	redirectionHandler := handlers.NewRedirectionHandler(logger, dbContext)
 
 	templateHandler := handlers.NewTemplateHandler(logger, baseUrl)
 
-	RegisterRoutes(logger, ctx, mux, middleware, apiHandler, redirectionHandler, templateHandler)
+	RegisterRoutes(logger, ctx, mux, middleware, apiHandler, apiUserHandler, redirectionHandler, templateHandler)
 
 	app := App{
 		Config: config,

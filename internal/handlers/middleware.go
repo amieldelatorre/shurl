@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/amieldelatorre/shurl/internal/config"
 	"github.com/amieldelatorre/shurl/internal/types"
 	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/google/uuid"
@@ -13,10 +14,11 @@ import (
 
 type Middlware struct {
 	Logger utils.CustomJsonLogger
+	Config config.Config
 }
 
-func NewMiddleware(logger utils.CustomJsonLogger) Middlware {
-	return Middlware{Logger: logger}
+func NewMiddleware(logger utils.CustomJsonLogger, config config.Config) Middlware {
+	return Middlware{Logger: logger, Config: config}
 }
 
 func (m *Middlware) RecoverPanic(next http.Handler) http.Handler {
@@ -47,7 +49,7 @@ func (m *Middlware) AddRequestId(next http.Handler) http.Handler {
 	})
 }
 
-func (mu *Middlware) IdempotencyKeyRequired(next http.Handler) http.Handler {
+func (m *Middlware) IdempotencyKeyRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idempotencyKey := r.Header.Get(types.HeadersIdempotencyKey)
 		if strings.TrimSpace(idempotencyKey) == "" {
@@ -55,5 +57,16 @@ func (mu *Middlware) IdempotencyKeyRequired(next http.Handler) http.Handler {
 			return
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+func (m *Middlware) AllowRegistration(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if m.Config.Server.AllowRegistration && m.Config.Server.AllowLogin {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Registration has been disabled by the administrator"})
 	})
 }

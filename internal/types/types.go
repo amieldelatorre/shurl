@@ -28,3 +28,19 @@ type CreateShortUrl struct {
 	DestinationUrl string
 	Slug           string
 }
+
+type CreateUserRequest struct {
+	Id           uuid.UUID
+	Username     string
+	Email        string
+	PasswordHash string
+}
+
+type User struct {
+	Id           uuid.UUID `json:"id"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}

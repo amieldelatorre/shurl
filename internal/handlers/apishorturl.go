@@ -16,21 +16,21 @@ import (
 	"github.com/google/uuid"
 )
 
-type ApiHandler struct {
+type ApiShortUrlHandler struct {
 	Logger  utils.CustomJsonLogger
 	Db      db.DbContext
 	BaseUrl string
 }
 
-func NewApiHandler(logger utils.CustomJsonLogger, dbcontext db.DbContext, baseUrl string) ApiHandler {
-	return ApiHandler{Logger: logger, Db: dbcontext, BaseUrl: baseUrl}
+func NewApiShortUrlHandler(logger utils.CustomJsonLogger, dbcontext db.DbContext, baseUrl string) ApiShortUrlHandler {
+	return ApiShortUrlHandler{Logger: logger, Db: dbcontext, BaseUrl: baseUrl}
 }
 
 type PostShortUrlRequest struct {
 	DestinationUrl string `json:"destination_url"`
 }
 
-func (h *ApiHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
+func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
 	var req PostShortUrlRequest
 
 	idempotencyKeyString := r.Header.Get(types.HeadersIdempotencyKey)
@@ -105,7 +105,7 @@ func (h *ApiHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
 	h.Logger.Debug(r.Context(), "PostShortUrl created short url with id '%s'", "shortUrlId", shortUrl.Id, "responseStatusCode", 201)
 }
 
-func (h *ApiHandler) generateUniqueSlug(ctx context.Context) (string, error) {
+func (h *ApiShortUrlHandler) generateUniqueSlug(ctx context.Context) (string, error) {
 	slug, err := GenerateSlug()
 	if err != nil {
 		return "", err

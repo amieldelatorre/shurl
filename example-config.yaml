@@ -1,7 +1,11 @@
 server:
   domain: localhost
   # port: 8080
-# In environment variables it is SERVER_PORT
+  # In environment variables it is SERVER_PORT
+  allow_login: true
+  allow_registration: true
+  allow_anonymous: false
+
 
 database:
   driver: postgres

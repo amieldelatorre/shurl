@@ -49,27 +49,11 @@ func (p *PostgreSQLContext) getShortUrlByIdWithTx(ctx context.Context, tx pgx.Tx
 	return &shortUrl, err
 }
 
-func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID, request_hash string) (*types.ShortUrl, error) {
+func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID, requestHash string) (*types.ShortUrl, error) {
 	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (*types.ShortUrl, error) {
 		var newShortUrl types.ShortUrl
-		idempotencyKeyUuid, err := uuid.NewV7()
-		if err != nil {
-			return nil, err
-		}
 
-		var storedReferenceId uuid.UUID
-		var storedRequestHash string
-		var idempotencyKeyInserted bool
-		err = tx.QueryRow(ctx,
-			`INSERT INTO idempotency_keys (id, i_key, reference_id, request_hash, created_at, expires_at)
-			 VALUES ($1, $2, $3, $4, NOW(), NOW() + INTERVAL '24 hours')
-			 ON CONFLICT (i_key) 
-			 DO UPDATE set i_key = EXCLUDED.i_key
-			 RETURNING reference_id, request_hash, (xmax = 0) AS inserted`,
-			// EXCLUDED is a virtual table that that has the values we just tried to insert but couldn't due to the conflict
-			// xmax stores the transaction id that deleted or locked a row
-			// if xmax = 0, that means there was an insert, if not 0, that means it updated
-			idempotencyKeyUuid, idempotencyKey, req.Id, request_hash).Scan(&storedReferenceId, &storedRequestHash, &idempotencyKeyInserted)
+		idempotencyKeyInserted, storedRequestHash, storedReferenceId, err := storeIdempotencyKey(ctx, tx, idempotencyKey, requestHash, req.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +61,7 @@ func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.Create
 		// if the idempotency key was not inserted (meaning that it was already used)
 		if !idempotencyKeyInserted {
 			// if the request hash matches the stored hash AND the reference ids match, return the existing object
-			if request_hash == storedRequestHash {
+			if requestHash == storedRequestHash {
 				return p.getShortUrlByIdWithTx(ctx, tx, storedReferenceId)
 			}
 
@@ -113,6 +97,81 @@ func (p *PostgreSQLContext) GetShortUrlBySlug(ctx context.Context, slug string) 
 		}
 		return &shortUrl, err
 	})
+}
+
+func (p *PostgreSQLContext) CreateUser(ctx context.Context, idempotencyKey uuid.UUID, requestHash string, req types.CreateUserRequest) (*types.User, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (*types.User, error) {
+		var newUser types.User
+
+		idempotencyKeyInserted, storedRequestHash, storedReferenceId, err := storeIdempotencyKey(ctx, tx, idempotencyKey, requestHash, req.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		if !idempotencyKeyInserted {
+			if requestHash == storedRequestHash {
+				return p.getUserByIdWithTx(ctx, tx, storedReferenceId)
+			}
+			return nil, &types.DuplicateIdempotencyKeyError{}
+		}
+
+		err = tx.QueryRow(ctx,
+			`INSERT INTO shurl_users (id, username, email, password_hash, created_at, updated_at)
+			 VALUES ($1, $2, $3, $4, NOW(), NOW())
+			 ON CONFLICT (id) DO UPDATE set id = EXCLUDED.id
+			 RETURNING id, username, email, password_hash, created_at, updated_at`,
+			req.Id, req.Username, req.Email, req.PasswordHash).Scan(
+			&newUser.Id, &newUser.Username, &newUser.Email, &newUser.PasswordHash, &newUser.CreatedAt, &newUser.UpdatedAt,
+		)
+		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) {
+				if pgErr.Code == "23505" { // unique constraint violation error code
+					return nil, &types.EmailOrUsernameExistsError{}
+				}
+			}
+			return nil, err
+		}
+		return &newUser, nil
+	})
+}
+
+func (p *PostgreSQLContext) getUserByIdWithTx(ctx context.Context, tx pgx.Tx, userId uuid.UUID) (*types.User, error) {
+	var user types.User
+
+	err := tx.QueryRow(ctx, `SELECT id, username, email, password_hash, created_at, updated_at FROM shurl_users WHERE id = $1`, userId).Scan(
+		&user.Id, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	return &user, err
+}
+
+func storeIdempotencyKey(ctx context.Context, tx pgx.Tx, idempotencyKey uuid.UUID, requestHash string, referenceId uuid.UUID) (bool, string, uuid.UUID, error) {
+	idempotencyKeyUuid, err := uuid.NewV7()
+	if err != nil {
+		return false, "", uuid.Nil, err
+	}
+
+	var storedReferenceId uuid.UUID
+	var storedRequestHash string
+	var idempotencyKeyInserted bool
+	err = tx.QueryRow(ctx,
+		`INSERT INTO idempotency_keys (id, i_key, reference_id, request_hash, created_at, expires_at)
+			 VALUES ($1, $2, $3, $4, NOW(), NOW() + INTERVAL '24 hours')
+			 ON CONFLICT (i_key) 
+			 DO UPDATE set i_key = EXCLUDED.i_key
+			 RETURNING reference_id, request_hash, (xmax = 0) AS inserted`,
+		// EXCLUDED is a virtual table that that has the values we just tried to insert but couldn't due to the conflict
+		// xmax stores the transaction id that deleted or locked a row
+		// if xmax = 0, that means there was an insert, if not 0, that means it updated
+		idempotencyKeyUuid, idempotencyKey, referenceId, requestHash).Scan(&storedReferenceId, &storedRequestHash, &idempotencyKeyInserted)
+	if err != nil {
+		return false, "", uuid.Nil, err
+	}
+
+	return idempotencyKeyInserted, storedRequestHash, storedReferenceId, nil
 }
 
 func ExecWithRetry[T any](ctx context.Context, logger utils.CustomJsonLogger, dbPool *pgxpool.Pool, fn func(pgx.Tx) (T, error)) (T, error) {

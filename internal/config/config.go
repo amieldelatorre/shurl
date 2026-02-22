@@ -20,10 +20,13 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port         string `mapstructure:"port" validate:"required"`
-	ListenAddr   string `mapstructure:"listenaddr"`
-	Domain       string `mapstructure:"domain" validate:"required"`
-	HttpsEnabled bool   `mapstructure:"https_enabled"` // For when the application server is behind a reverse proxy that handles TLS. If a certificate is provided and TLS is handled by the application server, it will always be true.
+	Port              string `mapstructure:"port" validate:"required"`
+	ListenAddr        string `mapstructure:"listenaddr"`
+	Domain            string `mapstructure:"domain" validate:"required"`
+	HttpsEnabled      bool   `mapstructure:"https_enabled"`      // For when the application server is behind a reverse proxy that handles TLS. If a certificate is provided and TLS is handled by the application server, it will always be true.
+	AllowLogin        bool   `mapstructure:"allow_login"`        // Allow login, by default only authenticated users are allowed to create urls
+	AllowRegistration bool   `mapstructure:"allow_registration"` // Allow user registration, this also needs `server.allow_login` to be true in order to take effect
+	AllowAnonymous    bool   `mapstructure:"allow_anonymous"`    // Allow anonymous link creation
 }
 
 type DatabaseConfig struct {
@@ -49,6 +52,9 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("server.port", "8080")
 	v.SetDefault("server.https_enabled", false)
 	v.SetDefault("database.port", "5432")
+	v.SetDefault("server.allow_login", false)
+	v.SetDefault("server.allow_registration", false)
+	v.SetDefault("server.allow_anonymous", false)
 }
 
 func TrimConfigs(config Config) Config {
