@@ -27,16 +27,16 @@ h1, h2, h3, h4 {
     color: #00ADB5;
 }
 
-#index-main {
+.main {
     height: 100%;
     padding-top: 20px
 }
 
-#index-header {
+.header {
     text-align: center;
 }
 
-#index-logo {
+.header .logo {
     font-weight: bold; 
     font-size: 50px;
 }
@@ -61,71 +61,6 @@ h1, h2, h3, h4 {
     animation: slideIn 0.5s ease-out;
 }
 
-#index-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    justify-content: flex-start;
-}
-
-#index-create-url-form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 10px;
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto 0 auto;
-}
-
-#index-create-url-description {
-    margin-bottom: 8px;
-}
-
-#index-create-url-input {
-    height: 40px;
-    width: 100%;
-    padding: 5px;
-    margin-bottom: 8px;
-    border: 1px solid grey;
-    border-radius: 8px;
-}
-
-.index-create-url-submit-button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 30px;
-    width: 150px;
-    border: 1px solid #00ADB5;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-#index-success-links {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin: 0 auto;
-    width: 95%;
-    max-width: 500px;
-    padding: 10px;
-}
-
-.successful-link-create {
-    position: relative;
-    padding: 5px;
-    border: solid 1px var(--success-colour);
-    border-radius: 12px;
-    text-align: center;
-}
-
-.successful-link-create-header {
-    display: inline-block;
-}
-
 .close-button {
     position: absolute;
     top: 0px;
@@ -144,44 +79,6 @@ h1, h2, h3, h4 {
     display: block;
     font-size: 30px;
     line-height: 1;
-}
-
-.short-url-created {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    align-items: center;
-    border: dotted 2px grey;
-    border-radius: 6px;
-    padding: 3px;
-    margin-bottom: 5px;
-}
-
-.short-url-created p {
-    display: inline-block;
-    border-radius: 6px;
-    margin-right: 5px;
-}
-
-.short-url-created button {
-    padding: 3px;
-    border: solid 1px grey;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.arrow-to-destination-svg {
-    max-height: 30px;
-    vertical-align: middle;
-}
-
-.destination-url {
-    display: inline-block;
-    max-width: calc(100% - 40px);
-    vertical-align: middle;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .spinner {
