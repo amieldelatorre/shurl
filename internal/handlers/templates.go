@@ -27,7 +27,7 @@ func (h *TemplateHandler) GetIndexJs(w http.ResponseWriter, r *http.Request) {
 	templateData := map[string]string{"apiUrl": h.BaseUrl}
 
 	w.Header().Set("Content-Type", "text/javascript")
-	err := templates.ExecuteTemplate(w, "index.js", templateData)
+	err := templates.ExecuteTemplate(w, "shared.js", templateData)
 	if err != nil {
 		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 		h.Logger.Error(r.Context(), err.Error())

@@ -46,6 +46,6 @@ func RegisterRoutes(
 	 */
 	mux.Handle("GET /", fileServer)
 	mux.Handle("GET /_/", http.StripPrefix("/_/", fileServer))
-	mux.Handle("GET /_/index.js", http.StripPrefix("/_/", getIndexJs))
+	mux.Handle("GET /_/shared.js", http.StripPrefix("/_/", getIndexJs))
 	mux.Handle("GET /{slug}", redirection)
 }
