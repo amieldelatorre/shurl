@@ -45,7 +45,7 @@ func NewApp(configFilePath string) App {
 	apiUserHandler := handlers.NewApiUserHandler(logger, dbContext)
 	redirectionHandler := handlers.NewRedirectionHandler(logger, dbContext)
 
-	templateHandler := handlers.NewTemplateHandler(logger, baseUrl)
+	templateHandler := handlers.NewTemplateHandler(logger, baseUrl, *config)
 
 	RegisterRoutes(logger, ctx, mux, middleware, apiHandler, apiUserHandler, redirectionHandler, templateHandler)
 

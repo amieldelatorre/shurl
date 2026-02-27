@@ -1,5 +1,5 @@
 import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm'
-import { createCloseButton, changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, ERROR_CONTAINER, changeButtonToFailed, SHORT_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY } from './shared.js';
+import { createCloseButton, changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, ERROR_CONTAINER, changeButtonToFailed, SHORT_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, TIMEOUT_IDS } from './shared.js';
 
 function createSuccessfulLinkBox(destinationUrl, shortUrl) {
     const successfulLinkCreateDiv = document.createElement("div");
@@ -22,9 +22,9 @@ function createSuccessfulLinkBox(destinationUrl, shortUrl) {
         const neighbourShortUrl = copyButton.previousElementSibling.textContent;
         navigator.clipboard.writeText(neighbourShortUrl).then(() => {
             copyButton.textContent = "copied!";
-            setTimeout(() => {
+            TIMEOUT_IDS.push(setTimeout(() => {
                 copyButton.textContent = "copy";
-            }, 5000);
+            }, 5000));
         }).catch((error) => {
             console.error("failed to copy", error);
         });
@@ -85,8 +85,8 @@ async function onSubmit(event) {
     }
 
     // Chose not to handle timeout explicitly, it should be retryable anyway and means something is wrong with the server.
-    if (result.isJson && result.error)
-        ERROR_CONTAINER.prepend(createErrorBox([result.error.error]));
+    if (result.isJson && result.json)
+        ERROR_CONTAINER.prepend(createErrorBox([result.json.error]));
     else
         ERROR_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
 

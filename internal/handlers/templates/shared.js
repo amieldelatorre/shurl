@@ -1,7 +1,17 @@
+// template environment variables
+export const ALLOW_REGISTRATION = {{.allowRegistration}};
+export const ALLOW_LOGIN = {{.allowLogin}};
+export const ALLOW_ANONYMOUS = {{.allowAnonymous}};
+
 /// template the api url
 export const API_URL = "{{.apiUrl}}";
+export const LOGIN_URL = new URL("_/login", API_URL);
+
 export const SHORT_URL_PATH = "api/v1/shorturl";
 export const SHORT_URL_ENDPONT = new URL(SHORT_URL_PATH, API_URL);
+
+export const USER_URL_PATH = "api/v1/user";
+export const USER_URL_ENDPONT = new URL(USER_URL_PATH, API_URL);
 
 export const ERROR_CONTAINER_ID = "error-container";
 export const ERROR_CONTAINER = document.getElementById(ERROR_CONTAINER_ID);
@@ -19,6 +29,8 @@ export const HEADER_IDEMPOTENCY_KEY = "X-Idempotency-Key";
 export const DEFAULT_HEADERS = {
     [HEADER_CONTENT_TYPE]: CONTENT_TYPE_JSON
 }
+
+export const TIMEOUT_IDS = [];
 
 
 export class FetchResponse {
@@ -63,7 +75,11 @@ export function createErrorBox(messages) {
 
 // function used to simulate long tasks
 export function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise(resolve => TIMEOUT_IDS.push(setTimeout(resolve, ms)));
+}
+
+export function clearAllTimeouts() {
+    TIMEOUT_IDS.forEach(id => clearTimeout(id));
 }
 
 export function clearChildren(node) {
@@ -118,10 +134,10 @@ export function changeButtonToFailed(button, fn) {
 
 export function removeClassAfterTimeout(button, classToRemove, ms, fn) {
     // using set timeout here and not sleep because this should happen in the background
-    setTimeout(() => {
+    TIMEOUT_IDS.push(setTimeout(() => {
         button.classList.remove(classToRemove);
         fn();
-    }, ms);
+    }, ms));
 }
 
 export async function fetchWithRetry(url, method, headers, body, maxAttempts = 3, retryBaseDelay = 150, defaultTimeoutMs = 2500) {
