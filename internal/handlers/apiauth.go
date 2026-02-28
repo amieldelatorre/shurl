@@ -113,8 +113,8 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	expiresAt := now.Add(jwtTokenValidHours * time.Hour)
 	claims := JwtClaims{
-		UserId: user.Id.String(),
 		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   user.Id.String(),
 			Issuer:    h.Config.Server.Auth.JwtIssuer,
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
