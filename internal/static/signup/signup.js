@@ -1,5 +1,5 @@
 import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm'
-import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, USER_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, API_URL, LOGIN_URL, sleep, ALLOW_REGISTRATION, ALLOW_LOGIN, ALLOW_ANONYMOUS } from '../shared.js';
+import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, USER_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, API_URL, LOGIN_URL, sleep, ALLOW_REGISTRATION, ALLOW_LOGIN, ALLOW_ANONYMOUS, addCookieBanner } from '../shared.js';
 
 const EMAIL_INPUT = document.getElementById("email");
 const USERNAME_INPUT = document.getElementById("username");
@@ -89,6 +89,7 @@ document.addEventListener("click", function (event) {
   }  
 })
 
+addCookieBanner();
 
 // TODO: Check if logged in and is valid and redirect
 if (!ALLOW_REGISTRATION && ALLOW_ANONYMOUS) 

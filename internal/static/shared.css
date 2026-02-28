@@ -41,6 +41,27 @@ h1, h2, h3, h4 {
     font-size: 50px;
 }
 
+.cookie-banner {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    border: 1px solid white;
+    min-height: 50px;
+    align-items: center;
+    padding: 10px;
+}
+
+.cookie-banner-text {
+    vertical-align: middle;
+    display: inline;
+}
+
+#cookie-banner-accept-button {
+    background: white;
+    min-width: 80px;
+    min-height: 30px;
+}
+
 #notification-container {
     position: fixed;
     top: 20px;
@@ -149,4 +170,11 @@ h1, h2, h3, h4 {
 
 .fade-out, .fade-out * {
     animation: fade-out 0.5s ease-out forwards;
+}
+
+@media (max-width: 400px) {
+    .cookie-banner {
+        flex-direction: column;
+        gap: 8px;
+    }
 }

@@ -17,6 +17,9 @@ export const USER_URL_ENDPONT = new URL(USER_URL_PATH, API_URL);
 export const LOGIN_URL_PATH = "api/v1/auth/login";
 export const LOGIN_URL_ENDPOINT = new URL(LOGIN_URL_PATH, API_URL);
 
+export const INFO_BANNER_CONTAINER_ID = "info-banner";
+export const INFO_BANNER_CONTAINER = document.getElementById(INFO_BANNER_CONTAINER_ID);
+
 export const NOTIFICATION_CONTAINER_ID = "notification-container";
 export const NOTIFICATION_CONTAINER = document.getElementById(NOTIFICATION_CONTAINER_ID);
 export const GENERIC_SERVER_ERROR_MESSAGE = "Something went wrong with the server, please try again later";
@@ -208,5 +211,36 @@ export function isRetryable(statusCode) {
         return true;
     }
     return false;
+}
+
+export function addCookieBanner() {
+    const cookieBannerKey = "authentication-cookie-banner";
+    let cookieBannerAccepted = localStorage.getItem(cookieBannerKey);
+    if (cookieBannerAccepted === "accepted") {
+        return
+    }
+
+    const cookieBanner = document.createElement("div");
+    cookieBanner.id = "cookie-banner";
+    cookieBanner.classList.add("cookie-banner");
+
+    const cookieBannerText = document.createElement("p");
+    cookieBannerText.classList.add("cookie-banner-text");
+    cookieBannerText.textContent = "This site uses essential cookies for login and security.";
+
+    cookieBanner.appendChild(cookieBannerText);
+    
+    const cookieBannerAcceptButton = document.createElement("button");
+    cookieBannerAcceptButton.id = "cookie-banner-accept-button";
+    cookieBannerAcceptButton.textContent = "Got it";
+
+    cookieBanner.appendChild(cookieBannerAcceptButton);
+
+    cookieBannerAcceptButton.onclick = () => {
+        localStorage.setItem(cookieBannerKey, "accepted");
+        cookieBanner.remove();
+    }
+
+    INFO_BANNER_CONTAINER.append(cookieBanner);
 }
 

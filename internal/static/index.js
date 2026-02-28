@@ -1,5 +1,5 @@
 import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm'
-import { createCloseButton, changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, SHORT_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, TIMEOUT_IDS } from './shared.js';
+import { createCloseButton, changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, SHORT_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, TIMEOUT_IDS, addCookieBanner } from './shared.js';
 
 function createSuccessfulLinkBox(destinationUrl, shortUrl) {
     const successfulLinkCreateDiv = document.createElement("div");
@@ -108,6 +108,8 @@ document.addEventListener("click", function (event) {
         parent.remove();
     });
   }  
-})
+});
+
+addCookieBanner();
 
 // TODO: Check if logged in and validate and redirect or anonymous allowed
