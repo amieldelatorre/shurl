@@ -13,8 +13,8 @@ export const SHORT_URL_ENDPONT = new URL(SHORT_URL_PATH, API_URL);
 export const USER_URL_PATH = "api/v1/user";
 export const USER_URL_ENDPONT = new URL(USER_URL_PATH, API_URL);
 
-export const ERROR_CONTAINER_ID = "error-container";
-export const ERROR_CONTAINER = document.getElementById(ERROR_CONTAINER_ID);
+export const NOTIFICATION_CONTAINER_ID = "notification-container";
+export const NOTIFICATION_CONTAINER = document.getElementById(NOTIFICATION_CONTAINER_ID);
 export const GENERIC_SERVER_ERROR_MESSAGE = "Something went wrong with the server, please try again later";
 export const TOO_MANY_REQUESTS_MESSAGE = "Too many requests. Please try again in a few minutes."
 

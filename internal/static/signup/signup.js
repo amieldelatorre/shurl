@@ -1,5 +1,5 @@
 import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm'
-import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, ERROR_CONTAINER, changeButtonToFailed, USER_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, API_URL, LOGIN_URL, sleep, ALLOW_REGISTRATION, ALLOW_LOGIN, ALLOW_ANONYMOUS } from '../shared.js';
+import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, USER_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, API_URL, LOGIN_URL, sleep, ALLOW_REGISTRATION, ALLOW_LOGIN, ALLOW_ANONYMOUS } from '../shared.js';
 
 const EMAIL_INPUT = document.getElementById("email");
 const USERNAME_INPUT = document.getElementById("username");
@@ -38,7 +38,7 @@ async function onSubmit(event) {
         changeButtonToFailed(submittingButton, () => {
             changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
         });
-        ERROR_CONTAINER.prepend(createErrorBox(validationErrors));
+        NOTIFICATION_CONTAINER.prepend(createErrorBox(validationErrors));
         return;
     }
 
@@ -64,9 +64,9 @@ async function onSubmit(event) {
 
     // Chose not to handle timeout explicitly, it should be retryable anyway and means something is wrong with the server.
     if (result.isJson && result.json)
-        ERROR_CONTAINER.prepend(createErrorBox([result.json.error]));
+        NOTIFICATION_CONTAINER.prepend(createErrorBox([result.json.error]));
     else
-        ERROR_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
+        NOTIFICATION_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
 
     changeButtonToFailed(submittingButton, () => {
         changeButtonToNormal(submittingButton, BUTTON_NORMAL_TEXT);
