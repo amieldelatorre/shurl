@@ -33,6 +33,10 @@ func NewApp(configFilePath string) App {
 		logger.ErrorExit(ctx, err.Error())
 	}
 
+	if config.Server.HttpsEnabled {
+		handlers.CookieAccessTokenName = "__Host-" + handlers.CookieAccessTokenName
+	}
+
 	baseUrl := getBaseUrlString(config.Server.HttpsEnabled, config.Server.Domain, config.Server.Port)
 
 	dbContext := db.GetDatabaseContext(ctx, *config, logger)

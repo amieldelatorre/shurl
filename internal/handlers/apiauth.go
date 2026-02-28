@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -16,9 +17,17 @@ import (
 )
 
 const (
-	invalidCredentialsMessage = "Invalid credentials"
-	dummyPassword             = "DUMMY_CREDENTIALS_FOR_CONSTANT_TIME_COMPARE"
-	jwtTokenValidHours        = 24
+	invalidCredentialsMessage        = "Invalid credentials"
+	dummyPassword                    = "DUMMY_CREDENTIALS_FOR_CONSTANT_TIME_COMPARE"
+	jwtTokenValidHours               = 24
+	HeaderXAuthMethodWanted   string = "X-Auth-Method-Wanted"
+)
+
+type AuthMethod string
+
+const (
+	AuthMethodCookie AuthMethod = "cookie"
+	AuthMethodJson   AuthMethod = "json"
 )
 
 type ApiAuthHandler struct {
@@ -47,7 +56,6 @@ type loginResponse struct {
 }
 
 type JwtClaims struct {
-	UserId string `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
@@ -130,7 +138,60 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	EncodeResponse[loginResponse](w, http.StatusCreated, loginResponse{AccessToken: signedToken})
+	authMethodWanted := r.Header.Get(HeaderXAuthMethodWanted)
+	switch authMethodWanted {
+	case string(AuthMethodCookie):
+		cookie := &http.Cookie{
+			Name:     CookieAccessTokenName,
+			Value:    signedToken,
+			Path:     "/",
+			MaxAge:   jwtTokenValidHours * 60 * 60, // x * minutes in an hour * seconds in a minute
+			HttpOnly: true,
+			Secure:   h.Config.Server.HttpsEnabled,
+			SameSite: http.SameSiteStrictMode,
+		}
+		http.SetCookie(w, cookie)
+		w.WriteHeader(http.StatusCreated)
+	case string(AuthMethodJson):
+		EncodeResponse[loginResponse](w, http.StatusCreated, loginResponse{AccessToken: signedToken})
+	default:
+		EncodeResponse[loginResponse](w, http.StatusCreated, loginResponse{AccessToken: signedToken})
+	}
+
 	// TODO: Add IP address
 	h.Logger.Warn(r.Context(), "login successful")
+}
+
+type ValidateResponse struct {
+	Ok bool `json:"ok"`
+}
+
+func (h *ApiAuthHandler) Validate(w http.ResponseWriter, r *http.Request) {
+	// if they've made it this far, its ok
+	EncodeResponse[ValidateResponse](w, http.StatusOK, ValidateResponse{Ok: true})
+}
+
+func ValidateAccessToken(token string, publicKey *ecdsa.PublicKey) (*JwtClaims, bool, error) {
+	claims := &JwtClaims{}
+	parsedToken, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodECDSA); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+
+		if t.Method.Alg() != jwt.SigningMethodES512.Name {
+			return nil, errors.New("unexpected signing method")
+		}
+
+		return publicKey, nil
+	})
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !parsedToken.Valid {
+		return nil, false, nil
+	}
+
+	return claims, true, nil
 }

@@ -89,6 +89,8 @@ document.addEventListener("click", function (event) {
   }  
 })
 
+
+// TODO: Check if logged in and is valid and redirect
 if (!ALLOW_REGISTRATION && ALLOW_ANONYMOUS) 
     window.location.href = API_URL;
 else if (!ALLOW_REGISTRATION && ALLOW_LOGIN)

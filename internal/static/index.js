@@ -109,3 +109,5 @@ document.addEventListener("click", function (event) {
     });
   }  
 })
+
+// TODO: Check if logged in and validate and redirect or anonymous allowed

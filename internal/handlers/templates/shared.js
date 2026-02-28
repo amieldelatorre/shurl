@@ -6,12 +6,16 @@ export const ALLOW_ANONYMOUS = {{.allowAnonymous}};
 /// template the api url
 export const API_URL = "{{.apiUrl}}";
 export const LOGIN_URL = new URL("_/login", API_URL);
+export const HOME_URL = new URL("/", API_URL);
 
 export const SHORT_URL_PATH = "api/v1/shorturl";
 export const SHORT_URL_ENDPONT = new URL(SHORT_URL_PATH, API_URL);
 
 export const USER_URL_PATH = "api/v1/user";
 export const USER_URL_ENDPONT = new URL(USER_URL_PATH, API_URL);
+
+export const LOGIN_URL_PATH = "api/v1/auth/login";
+export const LOGIN_URL_ENDPOINT = new URL(LOGIN_URL_PATH, API_URL);
 
 export const NOTIFICATION_CONTAINER_ID = "notification-container";
 export const NOTIFICATION_CONTAINER = document.getElementById(NOTIFICATION_CONTAINER_ID);
