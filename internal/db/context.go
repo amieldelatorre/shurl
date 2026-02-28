@@ -13,4 +13,5 @@ type DbContext interface {
 	GetShortUrlById(ctx context.Context, id uuid.UUID) (*types.ShortUrl, error)
 	GetShortUrlBySlug(ctx context.Context, slug string) (*types.ShortUrl, error)
 	CreateUser(ctx context.Context, idempotencyKey uuid.UUID, requestHash string, req types.CreateUserRequest) (*types.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*types.User, error)
 }

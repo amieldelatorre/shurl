@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -34,20 +33,24 @@ func NewApp(configFilePath string) App {
 		logger.ErrorExit(ctx, err.Error())
 	}
 
-	baseUrl := getBaseUrlString(config.Server.HttpsEnabled, strings.TrimSpace(config.Server.Domain), strings.TrimSpace(config.Server.Port))
+	baseUrl := getBaseUrlString(config.Server.HttpsEnabled, config.Server.Domain, config.Server.Port)
 
 	dbContext := db.GetDatabaseContext(ctx, *config, logger)
 
 	mux := http.NewServeMux()
 
 	middleware := handlers.NewMiddleware(logger, *config)
-	apiHandler := handlers.NewApiShortUrlHandler(logger, dbContext, baseUrl)
+	apiShortUrlHandler := handlers.NewApiShortUrlHandler(logger, dbContext, baseUrl)
 	apiUserHandler := handlers.NewApiUserHandler(logger, dbContext)
-	redirectionHandler := handlers.NewRedirectionHandler(logger, dbContext)
+	apiAuthHandler, err := handlers.NewApiAuthHandler(logger, *config, dbContext)
+	if err != nil {
+		logger.ErrorExit(ctx, err.Error())
+	}
 
+	redirectionHandler := handlers.NewRedirectionHandler(logger, dbContext)
 	templateHandler := handlers.NewTemplateHandler(logger, baseUrl, *config)
 
-	RegisterRoutes(logger, ctx, mux, middleware, apiHandler, apiUserHandler, redirectionHandler, templateHandler)
+	RegisterRoutes(logger, ctx, mux, middleware, apiShortUrlHandler, apiUserHandler, apiAuthHandler, redirectionHandler, templateHandler)
 
 	app := App{
 		Config: config,

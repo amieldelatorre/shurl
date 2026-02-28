@@ -3,7 +3,9 @@ module github.com/amieldelatorre/shurl
 go 1.25.6
 
 require (
+	github.com/alexedwards/argon2id v1.0.0
 	github.com/go-playground/validator/v10 v10.30.1
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/pressly/goose/v3 v3.26.0
@@ -12,7 +14,6 @@ require (
 )
 
 require (
-	github.com/alexedwards/argon2id v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

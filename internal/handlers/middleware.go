@@ -67,6 +67,17 @@ func (m *Middlware) AllowRegistration(next http.Handler) http.Handler {
 			return
 		}
 
-		EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Registration has been disabled by the administrator"})
+		EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Signup has been disabled by the administrator"})
+	})
+}
+
+func (m *Middlware) AllowLogin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if m.Config.Server.AllowLogin {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Login has been disabled by the administrator"})
 	})
 }

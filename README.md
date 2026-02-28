@@ -1,6 +1,11 @@
 # Shurl
 Shurl is a URL shortener written in go.
 
+## Generating a JWT Signing Key
+```bash
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:secp521r1 -out jwt_private_key.pem
+```
+
 # Upcoming Features (maybe)
 - [x] Add postgres connection settings for fast cutover on failover
 - [x] Add retries on db operations

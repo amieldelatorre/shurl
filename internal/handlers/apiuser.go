@@ -15,6 +15,18 @@ import (
 	"github.com/google/uuid"
 )
 
+var (
+	// https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
+	// m=9216 (9 MiB), t=4, p=1
+	argon2idParams = &argon2id.Params{
+		Memory:      256 * 1024,
+		Iterations:  4,
+		Parallelism: 2, // requires 2 cpu cores
+		SaltLength:  16,
+		KeyLength:   32,
+	}
+)
+
 type ApiUserHandler struct {
 	Logger utils.CustomJsonLogger
 	Db     db.DbContext
@@ -77,15 +89,6 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create password hash
-	// https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
-	// m=9216 (9 MiB), t=4, p=1
-	argon2idParams := &argon2id.Params{
-		Memory:      256 * 1024,
-		Iterations:  4,
-		Parallelism: 2, // requires 2 cpu cores
-		SaltLength:  16,
-		KeyLength:   32,
-	}
 	hashedPassword, err := argon2id.CreateHash(req.Password, argon2idParams)
 	if err != nil {
 		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})

@@ -7,3 +7,6 @@ ignore-*
 .docker_data
 .env
 __debug_bin*
+
+*.key
+*.pem

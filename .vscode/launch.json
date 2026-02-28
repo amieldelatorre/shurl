@@ -6,7 +6,10 @@
         "request": "launch",
         "mode": "auto",
         "program": "${workspaceFolder}",
-        "args": ["run", "-f", "example-config.yaml"]
+        "args": ["run", "-f", "example-config.yaml"],
+        "env": {
+            "SERVER_AUTH_JWT_KEY": "-----BEGIN PRIVATE KEY-----MIHuAgEAMBAGByqGSM49AgEGBSuBBAAjBIHWMIHTAgEBBEIBE1c1laUlgGPVWVPH6jAzB6CcFpPhea12DnfsGZSQ5oOr7hHIfg8ISMCUdtSfFf1VhsO+8eLeJuinp4ror4vMqVChgYkDgYYABABfllyQMGEalHCmMZTKohOHKP3FOhmv4sG7WVZ72Wb1YLqToJ7/BhTiRID9OIWB7n78SLQ2xvuCJLlRbHrtqSRoQwF96gLgi7hSBUUP8Sdhhe8yrjel1nBKL4NfJWda4hyVEgpiqa9UJIqVkpDi3EciHDYLUMW/pcl78otmhGkncz1+pg==-----END PRIVATE KEY-----"
+        }
     }
     ]
 }
