@@ -32,5 +32,5 @@
 }
 
 .signup-form p a {
-    color: #8AB4F8;
+    color: var(--link-colour);
 }

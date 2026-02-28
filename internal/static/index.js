@@ -111,5 +111,5 @@ document.addEventListener("click", function (event) {
 });
 
 addCookieBanner();
-
+// TODO: Add content disabled banner
 // TODO: Check if logged in and validate and redirect or anonymous allowed

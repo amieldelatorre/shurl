@@ -1,6 +1,6 @@
-import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, LOGIN_URL_ENDPOINT, DEFAULT_HEADERS, HOME_URL, sleep, addCookieBanner } from '../shared.js';
+import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, LOGIN_URL_ENDPOINT, DEFAULT_HEADERS, HOME_URL, sleep, addCookieBanner, ALLOW_LOGIN, INFO_BANNER_CONTAINER } from '../shared.js';
 
-
+const LOGIN_FORM = document.getElementById("login-form");
 const EMAIL_INPUT = document.getElementById("email");
 const PASSWORD_INPUT = document.getElementById("password");
 const HEADER_X_AUTH_METHOD_WANTED = "X-Auth-Method-Wanted";
@@ -69,4 +69,19 @@ document.addEventListener("click", function (event) {
 
 addCookieBanner();
 
+if (!ALLOW_LOGIN) {
+    LOGIN_FORM.inert = true;
+
+    const loginDisabledBanner = document.createElement("div");
+    loginDisabledBanner.id = "login-disabled-banner";
+    loginDisabledBanner.classList.add("login-disabled-banner");
+    loginDisabledBanner.classList.add("content-disabled-banner");
+
+    const loginDisabledBannerText = document.createElement("p");
+    loginDisabledBannerText.classList.add("login-disabled-banner-text");
+    loginDisabledBannerText.innerHTML = `Log in has been disabled by the administrator. <a href="${HOME_URL}">Go to home</a>`;
+    loginDisabledBanner.append(loginDisabledBannerText);
+
+    INFO_BANNER_CONTAINER.append(loginDisabledBanner);
+}
 // TODO: Check if logged in and is valid and redirect

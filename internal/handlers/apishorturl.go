@@ -33,6 +33,7 @@ type PostShortUrlRequest struct {
 func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
 	var req PostShortUrlRequest
 
+	// TODO: Add a user id to the short url
 	idempotencyKeyString := r.Header.Get(types.HeadersIdempotencyKey)
 	idempotencyKey, err := uuid.Parse(idempotencyKeyString)
 	if err != nil {

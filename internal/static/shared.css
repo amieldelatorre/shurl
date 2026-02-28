@@ -1,6 +1,7 @@
 :root {
     --error-colour: #f44336;
     --success-colour: #4caf50;
+    --link-colour: #8AB4F8;
 }
 
 * {
@@ -39,6 +40,21 @@ h1, h2, h3, h4 {
 .header .logo {
     font-weight: bold; 
     font-size: 50px;
+}
+
+.content-disabled-banner {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    border: 1px solid var(--error-colour);
+    min-height: 50px;
+    align-items: center;
+    padding: 10px;
+    color: var(--error-colour);
+}
+
+.content-disabled-banner a {
+    color: var(--link-colour);
 }
 
 .cookie-banner {
@@ -133,6 +149,17 @@ h1, h2, h3, h4 {
     background: transparent;
     height: 30px;
     width: 30px;
+}
+
+form[inert] {
+    opacity: 0.5;
+    border: 1px solid red;
+    /* filter: grayscale(1); */
+}
+
+form[inert] input,
+form[inert] button {
+    border: 1px solid red;
 }
 
 @keyframes spin {
