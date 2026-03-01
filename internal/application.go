@@ -37,7 +37,7 @@ func NewApp(configFilePath string) App {
 		handlers.CookieAccessTokenName = "__Host-" + handlers.CookieAccessTokenName
 	}
 
-	baseUrl := getBaseUrlString(config.Server.HttpsEnabled, config.Server.Domain, config.Server.Port)
+	baseUrl := getBaseUrlString(config.Server.HttpsEnabled, config.Server.Domain, config.Server.Port, config.Server.AppendPort)
 
 	dbContext := db.GetDatabaseContext(ctx, *config, logger)
 
@@ -102,7 +102,7 @@ func (a *App) Run() {
 	a.Exit()
 }
 
-func getBaseUrlString(httpsEnabled bool, domain string, port string) string {
+func getBaseUrlString(httpsEnabled bool, domain string, port string, appendPort bool) string {
 	protocol := "http"
 	if httpsEnabled {
 		protocol = "https"
@@ -112,7 +112,7 @@ func getBaseUrlString(httpsEnabled bool, domain string, port string) string {
 
 	isNotStandardHttp := !httpsEnabled && port != "80"
 	isNotStandardHttps := httpsEnabled && port != "443"
-	if isNotStandardHttp || isNotStandardHttps {
+	if (isNotStandardHttp || isNotStandardHttps) && appendPort {
 		baseUrl += fmt.Sprintf(":%s", port)
 	}
 
