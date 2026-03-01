@@ -1,5 +1,9 @@
 import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm'
-import { createCloseButton, changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, SHORT_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, TIMEOUT_IDS, addCookieBanner } from './shared.js';
+import { createCloseButton, changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, SHORT_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, TIMEOUT_IDS, addCookieBanner, isLoggedIn, sleep, ALLOW_ANONYMOUS, LOGIN_URL, ALLOW_LOGIN, ALLOW_REGISTRATION, INFO_BANNER_CONTAINER } from './shared.js';
+
+const CREATE_URL_FORM_ID = "index-create-url-form";
+const CREATE_URL_FORM = document.getElementById(CREATE_URL_FORM_ID);
+
 
 function createSuccessfulLinkBox(destinationUrl, shortUrl) {
     const successfulLinkCreateDiv = document.createElement("div");
@@ -110,6 +114,28 @@ document.addEventListener("click", function (event) {
   }  
 });
 
+let loggedIn = await isLoggedIn();
+
 addCookieBanner();
-// TODO: Add content disabled banner
-// TODO: Check if logged in and validate and redirect or anonymous allowed
+if (!loggedIn && !ALLOW_ANONYMOUS && !ALLOW_LOGIN && !ALLOW_REGISTRATION) {
+    CREATE_URL_FORM.inert = true;
+
+
+    const applicationReadonlyBanner = document.createElement("div");
+    applicationReadonlyBanner.id = "application-readonly-banner";
+    applicationReadonlyBanner.classList.add("application-readonly-banner");
+    applicationReadonlyBanner.classList.add("content-disabled-banner");
+
+    const applicationReadonlyBannerText = document.createElement("p");
+    applicationReadonlyBannerText.classList.add("application-readonly-banner-text");
+    applicationReadonlyBannerText.innerHTML = `Administrator has disabled login, registration and and anonymous short url creation. Already logged in users will still be able to create short urls for a while. Existing short url redirects will still work.`;
+    applicationReadonlyBanner.append(applicationReadonlyBannerText);
+
+    INFO_BANNER_CONTAINER.append(applicationReadonlyBanner);
+} else if (!loggedIn && !ALLOW_ANONYMOUS) {
+    CREATE_URL_FORM.inert = true;
+    NOTIFICATION_CONTAINER.prepend(createErrorBox(["Not logged in, redirecting to login page in 1 second"]));
+    await sleep(1000);
+    window.location.href = LOGIN_URL;
+}
+

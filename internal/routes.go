@@ -29,6 +29,7 @@ func RegisterRoutes(
 	postUser := m.RecoverPanic(m.AddRequestId(m.AllowRegistration(m.IdempotencyKeyRequired(http.HandlerFunc(apiUserHandler.PostUser)))))
 	getIndexJs := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(templateHandler.GetIndexJs)))
 	login := m.RecoverPanic(m.AddRequestId(m.AllowLogin(http.HandlerFunc(authHandler.Login))))
+	logout := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(authHandler.Logout)))
 	validate := m.RecoverPanic(m.AddRequestId(m.LoginRequired(http.HandlerFunc(authHandler.Validate))))
 
 	htmlSubFs, err := fs.Sub(embedHtmlStatic, "static")
@@ -40,6 +41,7 @@ func RegisterRoutes(
 	mux.Handle("POST /api/v1/shorturl", postShortUrl)
 	mux.Handle("POST /api/v1/user", postUser)
 	mux.Handle("POST /api/v1/auth/login", login)
+	mux.Handle("POST /api/v1/auth/logout", logout)
 	mux.Handle("GET /api/v1/auth/validate", validate)
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)

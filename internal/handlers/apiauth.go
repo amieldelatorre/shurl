@@ -146,6 +146,7 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 			Value:    signedToken,
 			Path:     "/",
 			MaxAge:   jwtTokenValidHours * 60 * 60, // x * minutes in an hour * seconds in a minute
+			Expires:  expiresAt,
 			HttpOnly: true,
 			Secure:   h.Config.Server.HttpsEnabled,
 			SameSite: http.SameSiteStrictMode,
@@ -194,4 +195,19 @@ func ValidateAccessToken(token string, publicKey *ecdsa.PublicKey) (*JwtClaims, 
 	}
 
 	return claims, true, nil
+}
+
+func (h *ApiAuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	cookie := &http.Cookie{
+		Name:     CookieAccessTokenName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Secure:   h.Config.Server.HttpsEnabled,
+		SameSite: http.SameSiteStrictMode,
+	}
+	http.SetCookie(w, cookie)
+	w.WriteHeader(http.StatusOK)
 }

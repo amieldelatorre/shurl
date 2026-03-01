@@ -106,7 +106,7 @@ func (m *Middlware) LoginRequired(next http.Handler) http.Handler {
 		}
 
 		if accessToken == "" {
-			EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Login required"})
+			EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Login required"})
 			return
 		}
 
@@ -117,7 +117,7 @@ func (m *Middlware) LoginRequired(next http.Handler) http.Handler {
 		}
 
 		if !isValidAccessToken {
-			EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Invalid access token"})
+			EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Invalid access token"})
 			return
 		}
 
@@ -151,7 +151,7 @@ func (m *Middlware) LoginRequiredOrAllowAnonymous(next http.Handler) http.Handle
 
 		// Scenario 1.
 		if accessToken == "" && !m.Config.Server.AllowAnonymous {
-			EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Login required"})
+			EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Login required"})
 			return
 		} else if accessToken == "" && m.Config.Server.AllowAnonymous { // Scenario 2
 			ctx := context.WithValue(r.Context(), UserIdKey, uuid.Nil)
@@ -167,7 +167,7 @@ func (m *Middlware) LoginRequiredOrAllowAnonymous(next http.Handler) http.Handle
 		}
 
 		if !isValidAccessToken {
-			EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Invalid access token"})
+			EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Invalid access token"})
 			return
 		}
 
@@ -204,8 +204,14 @@ func (m *Middlware) GetAccessToken(r *http.Request) (accessToken string, err err
 }
 
 func (m *Middlware) handleAuthErrors(w http.ResponseWriter, ctx context.Context, err error) {
-	if errors.Is(err, jwt.ErrECDSAVerification) {
-		EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Invalid access token"})
+	if errors.Is(err, jwt.ErrECDSAVerification) ||
+		errors.Is(err, jwt.ErrTokenMalformed) ||
+		errors.Is(err, jwt.ErrTokenNotValidYet) ||
+		errors.Is(err, jwt.ErrTokenExpired) ||
+		errors.Is(err, jwt.ErrTokenSignatureInvalid) ||
+		errors.Is(err, jwt.ErrTokenUnverifiable) ||
+		errors.Is(err, jwt.ErrTokenRequiredClaimMissing) {
+		EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Invalid access token"})
 		return
 	}
 

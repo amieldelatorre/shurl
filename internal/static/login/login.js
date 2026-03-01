@@ -1,4 +1,4 @@
-import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, LOGIN_URL_ENDPOINT, DEFAULT_HEADERS, HOME_URL, sleep, addCookieBanner, ALLOW_LOGIN, INFO_BANNER_CONTAINER } from '../shared.js';
+import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, LOGIN_URL_ENDPOINT, DEFAULT_HEADERS, HOME_URL, sleep, addCookieBanner, ALLOW_LOGIN, INFO_BANNER_CONTAINER, LOGOUT_URL_ENDPOINT, isLoggedIn } from '../shared.js';
 
 const LOGIN_FORM = document.getElementById("login-form");
 const EMAIL_INPUT = document.getElementById("email");
@@ -52,6 +52,34 @@ async function onSubmit(event) {
     return;
 }
 
+async function checkLoggedin() {
+    if (!(await isLoggedIn())) {
+        LOGIN_FORM.inert = true;
+        let result = await fetchWithRetry(
+            LOGOUT_URL_ENDPOINT,
+            "POST",
+            {},
+            {}
+        )
+
+        if (!result.isError) {
+            LOGIN_FORM.inert = false;
+            return
+        }
+
+        // Chose not to handle timeout explicitly, it should be retryable anyway and means something is wrong with the server.
+        if (result.isJson && result.json)
+            NOTIFICATION_CONTAINER.prepend(createErrorBox(["Error trying to invalidate expired token", result.json.error, "Please try logging in again to refresh. If error persists, please try again later"]));
+        else
+            NOTIFICATION_CONTAINER.prepend(createErrorBox(["Error trying to invalidate expired token", "Please try logging in again to refresh. If error persists, please try again later"]));
+
+        LOGIN_FORM.inert = false;
+        return;
+    }
+
+    window.location.href = HOME_URL;
+}
+
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("login-form").addEventListener("submit", onSubmit);
@@ -68,6 +96,7 @@ document.addEventListener("click", function (event) {
 })
 
 addCookieBanner();
+await checkLoggedin();
 
 if (!ALLOW_LOGIN) {
     LOGIN_FORM.inert = true;
@@ -84,4 +113,3 @@ if (!ALLOW_LOGIN) {
 
     INFO_BANNER_CONTAINER.append(loginDisabledBanner);
 }
-// TODO: Check if logged in and is valid and redirect

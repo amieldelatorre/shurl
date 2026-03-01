@@ -1,5 +1,5 @@
 import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm'
-import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, USER_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, LOGIN_URL, sleep, ALLOW_REGISTRATION, addCookieBanner, INFO_BANNER_CONTAINER } from '../shared.js';
+import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, USER_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, LOGIN_URL, sleep, ALLOW_REGISTRATION, addCookieBanner, INFO_BANNER_CONTAINER, HOME_URL, isLoggedIn } from '../shared.js';
 
 const SIGNUP_FORM = document.getElementById("signup-form");
 const EMAIL_INPUT = document.getElementById("email");
@@ -108,4 +108,6 @@ if (!ALLOW_REGISTRATION) {
     INFO_BANNER_CONTAINER.append(signupDisabledBanner);
 }
 
-// TODO: Check if logged in and is valid and redirect
+if (await isLoggedIn()) {
+    window.location.href = HOME_URL;
+}

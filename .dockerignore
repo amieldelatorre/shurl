@@ -1,1 +1,12 @@
-DS_Store
+shurl
+shurl.exe
+ignore-*
+
+.DS_Store
+
+.docker_data
+.env
+__debug_bin*
+
+*.key
+*.pem

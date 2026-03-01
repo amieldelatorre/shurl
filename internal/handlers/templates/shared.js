@@ -17,6 +17,12 @@ export const USER_URL_ENDPONT = new URL(USER_URL_PATH, API_URL);
 export const LOGIN_URL_PATH = "api/v1/auth/login";
 export const LOGIN_URL_ENDPOINT = new URL(LOGIN_URL_PATH, API_URL);
 
+export const LOGOUT_URL_PATH = "api/v1/auth/logout";
+export const LOGOUT_URL_ENDPOINT = new URL(LOGOUT_URL_PATH, API_URL);
+
+export const VALIDATE_URL_PATH = "api/v1/auth/validate";
+export const VALIDATE_URL_ENDPOINT = new URL(VALIDATE_URL_PATH, API_URL);
+
 export const INFO_BANNER_CONTAINER_ID = "info-banner";
 export const INFO_BANNER_CONTAINER = document.getElementById(INFO_BANNER_CONTAINER_ID);
 
@@ -244,3 +250,16 @@ export function addCookieBanner() {
     INFO_BANNER_CONTAINER.append(cookieBanner);
 }
 
+export async function isLoggedIn() {
+    let result = await fetchWithRetry(
+        VALIDATE_URL_ENDPOINT,
+        "GET"
+    );
+
+    if (!result.isError && result.statusCode == 200) {
+        return true;
+    }
+
+    // everything else, even connection errors is false
+    return false;
+}
