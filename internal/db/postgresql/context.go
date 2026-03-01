@@ -70,12 +70,12 @@ func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.Create
 		}
 
 		err = tx.QueryRow(ctx,
-			`INSERT INTO short_urls (id, destination_url, slug, created_at)
-			 VALUES ($1, $2, $3, NOW())
+			`INSERT INTO short_urls (id, destination_url, slug, created_at, user_id)
+			 VALUES ($1, $2, $3, NOW(), $4)
 			 ON CONFLICT (id) DO UPDATE set id = EXCLUDED.id
-			 RETURNING id, destination_url, slug, created_at`,
-			req.Id, req.DestinationUrl, req.Slug).Scan(
-			&newShortUrl.Id, &newShortUrl.DestinationUrl, &newShortUrl.Slug, &newShortUrl.CreatedAt,
+			 RETURNING id, destination_url, slug, created_at, user_id`,
+			req.Id, req.DestinationUrl, req.Slug, req.UserId).Scan(
+			&newShortUrl.Id, &newShortUrl.DestinationUrl, &newShortUrl.Slug, &newShortUrl.CreatedAt, &newShortUrl.UserId,
 		)
 		if err != nil {
 			return nil, err

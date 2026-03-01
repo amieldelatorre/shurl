@@ -9,24 +9,27 @@ import (
 const HeadersIdempotencyKey = "X-Idempotency-Key"
 
 type ShortUrl struct {
-	Id             uuid.UUID `json:"id"`
-	DestinationUrl string    `json:"destination_url"`
-	Slug           string    `json:"slug"`
-	CreatedAt      time.Time `json:"created_at"`
+	Id             uuid.UUID  `json:"id"`
+	DestinationUrl string     `json:"destination_url"`
+	Slug           string     `json:"slug"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UserId         *uuid.UUID `json:"user_id,omitempty"`
 }
 
 type CreateShortUrlResponse struct {
-	Id             uuid.UUID `json:"id"`
-	DestinationUrl string    `json:"destination_url"`
-	Slug           string    `json:"slug"`
-	CreatedAt      time.Time `json:"created_at"`
-	Url            string    `json:"url"`
+	Id             uuid.UUID  `json:"id"`
+	DestinationUrl string     `json:"destination_url"`
+	Slug           string     `json:"slug"`
+	CreatedAt      time.Time  `json:"created_at"`
+	Url            string     `json:"url"`
+	UserId         *uuid.UUID `json:"user_id,omitempty"`
 }
 
 type CreateShortUrl struct {
 	Id             uuid.UUID
 	DestinationUrl string
 	Slug           string
+	UserId         *uuid.UUID
 }
 
 type CreateUserRequest struct {

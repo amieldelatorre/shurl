@@ -33,7 +33,14 @@ type PostShortUrlRequest struct {
 func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
 	var req PostShortUrlRequest
 
-	// TODO: Add a user id to the short url
+	userIdValue := r.Context().Value(UserIdKey)
+	userIdUuid, ok := userIdValue.(uuid.UUID)
+	if !ok {
+		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+		h.Logger.Error(r.Context(), "casting uuid from context not ok")
+		return
+	}
+
 	idempotencyKeyString := r.Header.Get(types.HeadersIdempotencyKey)
 	idempotencyKey, err := uuid.Parse(idempotencyKeyString)
 	if err != nil {
@@ -76,6 +83,9 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 		DestinationUrl: req.DestinationUrl,
 		Slug:           slug,
 	}
+	if userIdUuid != uuid.Nil {
+		newShortUrl.UserId = &userIdUuid
+	}
 
 	requestHash := db.HashCreateShortUrlRequest(req.DestinationUrl)
 	shortUrl, err := h.Db.CreateShortUrl(r.Context(), newShortUrl, idempotencyKey, requestHash)
@@ -98,6 +108,7 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 		Slug:           shortUrl.Slug,
 		CreatedAt:      shortUrl.CreatedAt,
 		Url:            createShortUrl(h.BaseUrl, shortUrl.Slug),
+		UserId:         shortUrl.UserId,
 	}
 
 	if err = EncodeResponse[types.CreateShortUrlResponse](w, http.StatusCreated, response); err != nil {
