@@ -45,6 +45,7 @@ services:
       - 8080:8080
     environment:
       DATABASE_PASSWORD: ${SHURL_DATABASE_PASSWORD:?}
+      SERVER_AUTH_JWT_KEY: ${SHURL_SERVER_AUTH_JWT_KEY:?}
     volumes:
       - ./shurl.yaml:/shurl/shurl.yaml:ro
     depends_on:

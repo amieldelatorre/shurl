@@ -17,10 +17,11 @@ func RegisterRoutes(
 	logger utils.CustomJsonLogger,
 	ctx context.Context,
 	mux *http.ServeMux,
-	m handlers.Middlware,
+	m handlers.Middleware,
 	apiShortUrlHandler handlers.ApiShortUrlHandler,
 	apiUserHandler handlers.ApiUserHandler,
 	authHandler handlers.ApiAuthHandler,
+	apiHealthHandler handlers.ApiHealthHandler,
 	redirectionHandler handlers.RedirectionHandler,
 	templateHandler handlers.TemplateHandler,
 ) {
@@ -31,6 +32,7 @@ func RegisterRoutes(
 	login := m.RecoverPanic(m.AddRequestId(m.AllowLogin(http.HandlerFunc(authHandler.Login))))
 	logout := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(authHandler.Logout)))
 	validate := m.RecoverPanic(m.AddRequestId(m.LoginRequired(http.HandlerFunc(authHandler.Validate))))
+	healthCheck := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(apiHealthHandler.HealthCheck)))
 
 	htmlSubFs, err := fs.Sub(embedHtmlStatic, "static")
 	if err != nil {
@@ -43,6 +45,7 @@ func RegisterRoutes(
 	mux.Handle("POST /api/v1/auth/login", login)
 	mux.Handle("POST /api/v1/auth/logout", logout)
 	mux.Handle("GET /api/v1/auth/validate", validate)
+	mux.Handle("GET /api/v1/health", healthCheck)
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})

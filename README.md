@@ -13,8 +13,10 @@ openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:secp521r1 -out jwt_priv
 - [x] UI to create short urls
 - [x] Improve idempotency key by adding a hash for the request body to see if it is actually the same request
 - [x] Retry on the js fetch requests
-- [ ] User accounts
-    - [ ] Allow Login
-    - [ ] Allow Registration
-    - [ ] Allow anonymous creation
+- [x] User accounts
+    - [x] Allow Login
+    - [x] Allow Registration
+    - [x] Allow anonymous creation
+- [ ] Background worker for deleting expired idempotency key
+- [ ] Background worker for deleting expired short urls
 - [ ] Redis cache option

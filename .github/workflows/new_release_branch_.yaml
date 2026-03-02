@@ -40,8 +40,8 @@ jobs:
             git add "${file_path}"
           done
 
-          # git commit -m "Bump to ${version} [skip ci]"
-          # git push
+          git commit -m "Bump to ${version} [skip ci]"
+          git push
 
           latest_commit=$(git rev-parse HEAD)
 

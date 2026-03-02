@@ -26,8 +26,17 @@ func NewPostreSQLContext(logger utils.CustomJsonLogger, dbPool *pgxpool.Pool) *P
 	return &PostgreSQLContext{logger: logger, dbPool: dbPool}
 }
 
-func (p *PostgreSQLContext) GetDatabaseVersion() int64 {
-	return 2
+func (p *PostgreSQLContext) Ping(ctx context.Context) error {
+	err := p.dbPool.Ping(ctx)
+	return err
+}
+
+func (p *PostgreSQLContext) GetDatabaseVersion(ctx context.Context) (int64, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (int64, error) {
+		var version int64
+		err := tx.QueryRow(ctx, `SELECT max(version_id) FROM goose_db_version`).Scan(&version)
+		return version, err
+	})
 }
 
 func (p *PostgreSQLContext) GetShortUrlById(ctx context.Context, id uuid.UUID) (*types.ShortUrl, error) {

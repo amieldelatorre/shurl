@@ -26,16 +26,16 @@ var (
 	CookieAccessTokenName string = "access_token"
 )
 
-type Middlware struct {
+type Middleware struct {
 	Logger utils.CustomJsonLogger
 	Config config.Config
 }
 
-func NewMiddleware(logger utils.CustomJsonLogger, config config.Config) Middlware {
-	return Middlware{Logger: logger, Config: config}
+func NewMiddleware(logger utils.CustomJsonLogger, config config.Config) Middleware {
+	return Middleware{Logger: logger, Config: config}
 }
 
-func (m *Middlware) RecoverPanic(next http.Handler) http.Handler {
+func (m *Middleware) RecoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
@@ -49,7 +49,7 @@ func (m *Middlware) RecoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middlware) AddRequestId(next http.Handler) http.Handler {
+func (m *Middleware) AddRequestId(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m.Logger.Debug(r.Context(), "Adding a request id to incoming request")
 		id, err := uuid.NewV7()
@@ -63,7 +63,7 @@ func (m *Middlware) AddRequestId(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middlware) IdempotencyKeyRequired(next http.Handler) http.Handler {
+func (m *Middleware) IdempotencyKeyRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idempotencyKey := r.Header.Get(types.HeadersIdempotencyKey)
 		if strings.TrimSpace(idempotencyKey) == "" {
@@ -74,7 +74,7 @@ func (m *Middlware) IdempotencyKeyRequired(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middlware) AllowRegistration(next http.Handler) http.Handler {
+func (m *Middleware) AllowRegistration(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if m.Config.Server.AllowRegistration && m.Config.Server.AllowLogin {
 			next.ServeHTTP(w, r)
@@ -85,7 +85,7 @@ func (m *Middlware) AllowRegistration(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middlware) AllowLogin(next http.Handler) http.Handler {
+func (m *Middleware) AllowLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if m.Config.Server.AllowLogin {
 			next.ServeHTTP(w, r)
@@ -96,7 +96,7 @@ func (m *Middlware) AllowLogin(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middlware) LoginRequired(next http.Handler) http.Handler {
+func (m *Middleware) LoginRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		accessToken, err := m.GetAccessToken(r)
 		if err != nil {
@@ -133,7 +133,7 @@ func (m *Middlware) LoginRequired(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middlware) LoginRequiredOrAllowAnonymous(next http.Handler) http.Handler {
+func (m *Middleware) LoginRequiredOrAllowAnonymous(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		accessToken, err := m.GetAccessToken(r)
 		if err != nil {
@@ -183,7 +183,7 @@ func (m *Middlware) LoginRequiredOrAllowAnonymous(next http.Handler) http.Handle
 	})
 }
 
-func (m *Middlware) GetAccessToken(r *http.Request) (accessToken string, err error) {
+func (m *Middleware) GetAccessToken(r *http.Request) (accessToken string, err error) {
 	authHeaderValue := r.Header.Get(HeaderAuthorization)
 	if authHeaderValue != "" {
 		accessToken = strings.TrimPrefix(authHeaderValue, HeaderAuthorizationPrefix)
@@ -203,7 +203,7 @@ func (m *Middlware) GetAccessToken(r *http.Request) (accessToken string, err err
 	return "", nil
 }
 
-func (m *Middlware) handleAuthErrors(w http.ResponseWriter, ctx context.Context, err error) {
+func (m *Middleware) handleAuthErrors(w http.ResponseWriter, ctx context.Context, err error) {
 	if errors.Is(err, jwt.ErrECDSAVerification) ||
 		errors.Is(err, jwt.ErrTokenMalformed) ||
 		errors.Is(err, jwt.ErrTokenNotValidYet) ||

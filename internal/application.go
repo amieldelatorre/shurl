@@ -22,6 +22,7 @@ type App struct {
 	Logger    utils.CustomJsonLogger
 	Config    *config.Config
 	DbContext db.DbContext
+	baseUrl   string
 }
 
 func NewApp(configFilePath string) App {
@@ -47,6 +48,7 @@ func NewApp(configFilePath string) App {
 	apiShortUrlHandler := handlers.NewApiShortUrlHandler(logger, dbContext, baseUrl)
 	apiUserHandler := handlers.NewApiUserHandler(logger, dbContext)
 	apiAuthHandler, err := handlers.NewApiAuthHandler(logger, *config, dbContext)
+	apiHealthHandler := handlers.NewApiHealthHandler(logger, *config, dbContext)
 	if err != nil {
 		logger.ErrorExit(ctx, err.Error())
 	}
@@ -54,7 +56,7 @@ func NewApp(configFilePath string) App {
 	redirectionHandler := handlers.NewRedirectionHandler(logger, dbContext)
 	templateHandler := handlers.NewTemplateHandler(logger, baseUrl, *config)
 
-	RegisterRoutes(logger, ctx, mux, middleware, apiShortUrlHandler, apiUserHandler, apiAuthHandler, redirectionHandler, templateHandler)
+	RegisterRoutes(logger, ctx, mux, middleware, apiShortUrlHandler, apiUserHandler, apiAuthHandler, apiHealthHandler, redirectionHandler, templateHandler)
 
 	app := App{
 		Config: config,
@@ -64,6 +66,7 @@ func NewApp(configFilePath string) App {
 			Handler: mux,
 		},
 		DbContext: dbContext,
+		baseUrl:   baseUrl,
 	}
 	return app
 }
@@ -90,6 +93,7 @@ func (a *App) Run() {
 	go func() {
 		a.Logger.Info(ctx, "Attempting to start the server...")
 		a.Logger.Info(ctx, fmt.Sprintf("Starting server on port %s", a.Server.Addr))
+		a.Logger.Info(ctx, fmt.Sprintf("Server will be available on %s", a.baseUrl))
 		err := a.Server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.Logger.ErrorExit(ctx, "Something went wrong with the server", "error", err)
