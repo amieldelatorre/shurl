@@ -50,7 +50,7 @@ jobs:
 
   build_images:
     needs: [add_version_information]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 20 # slightly longer here because cross platform builds are slow
     strategy:
       fail-fast: true
