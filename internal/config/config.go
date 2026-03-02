@@ -21,6 +21,7 @@ type Config struct {
 	Server                      ServerConfig                `mapstructure:"server"`
 	Database                    DatabaseConfig              `mapstructure:"database"`
 	IdempotencyKeyCleanupWorker IdempotencyKeyCleanupWorker `mapstructure:"idempotency_key_cleanup_worker"`
+	Cache                       CacheConfig                 `mapstructure:"cache"`
 }
 
 type ServerConfig struct {
@@ -60,6 +61,13 @@ type DatabaseConfig struct {
 	Password string `mapstructure:"password" validate:"required"`
 }
 
+type CacheConfig struct {
+	Enabled *bool  `mapstructure:"enabled" validate:"required"`
+	Driver  string `mapstructure:"driver" validate:"required_if=Enabled true,oneof=valkey"`
+	Host    string `mapstructure:"host" validate:"required_if=Enabled true"`
+	Port    string `mapstructure:"port" validate:"required_if=Enabled true"`
+}
+
 var (
 	AllowedConfigFileTypes = []string{
 		"env",
@@ -74,21 +82,26 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("server.port", "8080")
 	v.SetDefault("server.https_enabled", false)
 	v.SetDefault("server.append_port", true)
-	v.SetDefault("database.port", "5432")
 	v.SetDefault("server.allow_login", false)
 	v.SetDefault("server.allow_registration", false)
 	v.SetDefault("server.allow_anonymous", false)
-
 	v.SetDefault("server.auth.jwt_signing_method", "ES512")
 	v.SetDefault("server.auth.jwt_issuer", "shurl")
 
 	v.SetDefault("idempotency_key_cleanup_worker.interval_seconds", 600)
 	v.SetDefault("idempotency_key_cleanup_worker.errors_fatal", true)
+
+	v.SetDefault("database.port", "5432")
+
+	v.SetDefault("cache.enabled", false)
+	v.SetDefault("cache.driver", "valkey")
 }
 
 func TrimConfigs(config Config) Config {
 	config.Server.Port = strings.TrimSpace(config.Server.Port)
 	config.Server.ListenAddr = strings.TrimSpace(config.Server.ListenAddr)
+	config.Server.Domain = strings.TrimSpace(config.Server.Domain)
+
 	config.Server.Auth.JwtIssuer = strings.TrimSpace(config.Server.Auth.JwtIssuer)
 	config.Server.Auth.JwtKey = strings.TrimSpace(config.Server.Auth.JwtKey)
 	config.Server.Auth.JwtSigningMethod = strings.TrimSpace(config.Server.Auth.JwtSigningMethod)
@@ -99,6 +112,10 @@ func TrimConfigs(config Config) Config {
 	config.Database.Name = strings.TrimSpace(config.Database.Name)
 	config.Database.Username = strings.TrimSpace(config.Database.Username)
 	config.Database.Password = strings.TrimSpace(config.Database.Password)
+
+	config.Cache.Driver = strings.TrimSpace(config.Cache.Driver)
+	config.Cache.Host = strings.TrimSpace(config.Cache.Host)
+	config.Cache.Port = strings.TrimSpace(config.Cache.Port)
 
 	return config
 }

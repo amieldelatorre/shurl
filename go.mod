@@ -11,6 +11,7 @@ require (
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	github.com/valkey-io/valkey-glide/go/v2 v2.2.7
 )
 
 require (
@@ -40,4 +41,5 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )

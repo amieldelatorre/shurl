@@ -6,7 +6,7 @@ networks:
 services:
 ##################################### PostgreSQL #####################################
   postgresql:
-    image: postgres:18.2
+    image: postgres:18.3
     restart: unless-stopped
     container_name: postgresql
     security_opt:
@@ -23,6 +23,32 @@ services:
       POSTGRES_DB: shurl
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d shurl -U shurl"]
+      start_period: 10s
+      interval: 30s
+      retries: 3
+      timeout: 5s
+
+##################################### Valkey #####################################
+  valkey:
+    image: valkey/valkey:9.0.3
+    restart: unless-stopped
+    container_name: valkey
+    security_opt:
+      - "no-new-privileges:true"
+    command:
+      - "valkey-server"
+      - "--maxmemory"
+      - "100mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
+      - "--save"
+      - ""
+    networks:
+      - backend
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
       start_period: 10s
       interval: 30s
       retries: 3

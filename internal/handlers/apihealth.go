@@ -17,25 +17,33 @@ type ApiHealthHandler struct {
 	Logger utils.CustomJsonLogger
 	Config config.Config
 	Db     db.DbContext
+	Cache  db.DbContext
 }
 
-func NewApiHealthHandler(logger utils.CustomJsonLogger, config config.Config, dbContext db.DbContext) ApiHealthHandler {
+func NewApiHealthHandler(logger utils.CustomJsonLogger, config config.Config, dbContext db.DbContext, cache db.DbContext) ApiHealthHandler {
 	return ApiHealthHandler{
 		Logger: logger,
 		Config: config,
 		Db:     dbContext,
+		Cache:  cache,
 	}
 }
 
 type HealthCheckResponse struct {
 	IdempotencyKeyCleanupWorker IdempotencyKeyCleanupWorkerHealthCheck `json:"idempotency_key_cleanup_worker"`
 	Database                    DatabaseHealthCheck                    `json:"database"`
+	Cache                       CacheHealthCheck                       `json:"cache"`
+	Errors                      []string                               `json:"errors,omitempty"`
 }
 
 type DatabaseHealthCheck struct {
 	Ok      bool   `json:"ok"`
 	Version string `json:"version,omitempty"`
-	Error   string `json:"error,omitempty"`
+}
+
+type CacheHealthCheck struct {
+	Enabled bool  `json:"enabled"`
+	Ok      *bool `json:"ok,omitempty"`
 }
 
 type IdempotencyKeyCleanupWorkerHealthCheck struct {
@@ -43,35 +51,58 @@ type IdempotencyKeyCleanupWorkerHealthCheck struct {
 }
 
 func (h *ApiHealthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	errs := []string{}
+	status := http.StatusOK
+
 	response := HealthCheckResponse{
 		IdempotencyKeyCleanupWorker: IdempotencyKeyCleanupWorkerHealthCheck{
 			Running: IdempotencyKeyCleanupWorkerRunning,
-		}}
+		},
+		Database: DatabaseHealthCheck{
+			Ok: true,
+		},
+		Cache: CacheHealthCheck{
+			Enabled: *h.Config.Cache.Enabled,
+		},
+	}
+
 	err := h.Db.Ping(r.Context())
 	if err != nil {
+		errs = append(errs, "could not ping database")
 		response.Database = DatabaseHealthCheck{
-			Ok:    false,
-			Error: "could not ping database",
+			Ok: false,
 		}
-		EncodeResponse[HealthCheckResponse](w, http.StatusInternalServerError, response)
 		h.Logger.Error(r.Context(), err.Error())
-		return
 	}
 
 	version, err := h.Db.GetDatabaseVersion(r.Context())
 	if err != nil {
+		errs = append(errs, "could not get db version")
 		response.Database = DatabaseHealthCheck{
-			Ok:    false,
-			Error: "could not get db version",
+			Ok: false,
 		}
-		EncodeResponse[HealthCheckResponse](w, http.StatusInternalServerError, response)
 		h.Logger.Error(r.Context(), err.Error())
-		return
 	}
 
-	response.Database = DatabaseHealthCheck{
-		Ok:      true,
-		Version: fmt.Sprintf("%d", version),
+	response.Database.Version = fmt.Sprintf("%d", version)
+
+	if *h.Config.Cache.Enabled {
+		err = h.Cache.Ping(r.Context())
+
+		if err != nil {
+			h.Logger.Error(r.Context(), err.Error())
+			ok := false
+			response.Cache.Ok = &ok
+			errs = append(errs, "could not ping cache")
+		} else {
+			ok := true
+			response.Cache.Ok = &ok
+		}
 	}
-	EncodeResponse[HealthCheckResponse](w, http.StatusOK, response)
+
+	response.Errors = errs
+	if len(errs) > 0 {
+		status = http.StatusInternalServerError
+	}
+	EncodeResponse[HealthCheckResponse](w, status, response)
 }

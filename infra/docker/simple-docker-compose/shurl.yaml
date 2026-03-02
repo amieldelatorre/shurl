@@ -10,3 +10,9 @@ database:
   name: shurl
   username: shurl
   # password: # This is set in the env.sample file
+
+cache:
+  enabled: true
+  driver: valkey
+  host: valkey
+  port: 6379

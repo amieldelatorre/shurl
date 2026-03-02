@@ -13,17 +13,19 @@ import (
 
 	"github.com/amieldelatorre/shurl/internal/config"
 	"github.com/amieldelatorre/shurl/internal/db"
+	"github.com/amieldelatorre/shurl/internal/db/valkey_cache"
 	"github.com/amieldelatorre/shurl/internal/handlers"
 	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/amieldelatorre/shurl/internal/workers"
 )
 
 type App struct {
-	Server    *http.Server
-	Logger    utils.CustomJsonLogger
-	Config    *config.Config
-	DbContext db.DbContext
-	baseUrl   string
+	Server       *http.Server
+	Logger       utils.CustomJsonLogger
+	Config       *config.Config
+	DbContext    db.DbContext
+	CacheContext *db.DbContext
+	baseUrl      string
 }
 
 func NewApp(configFilePath string) App {
@@ -42,6 +44,12 @@ func NewApp(configFilePath string) App {
 	baseUrl := getBaseUrlString(config.Server.HttpsEnabled, config.Server.Domain, config.Server.Port, config.Server.AppendPort)
 
 	dbContext := db.GetDatabaseContext(ctx, *config, logger)
+	actualDbContext := dbContext
+	var cacheContext db.DbContext
+	if config.Cache.Enabled != nil && *config.Cache.Enabled {
+		cacheContext = valkey_cache.GetDatabaseContext(ctx, *config, logger, dbContext)
+		dbContext = cacheContext
+	}
 
 	mux := http.NewServeMux()
 
@@ -49,7 +57,7 @@ func NewApp(configFilePath string) App {
 	apiShortUrlHandler := handlers.NewApiShortUrlHandler(logger, dbContext, baseUrl)
 	apiUserHandler := handlers.NewApiUserHandler(logger, dbContext)
 	apiAuthHandler, err := handlers.NewApiAuthHandler(logger, *config, dbContext)
-	apiHealthHandler := handlers.NewApiHealthHandler(logger, *config, dbContext)
+	apiHealthHandler := handlers.NewApiHealthHandler(logger, *config, actualDbContext, cacheContext)
 	if err != nil {
 		logger.ErrorExit(ctx, err.Error())
 	}
@@ -66,8 +74,9 @@ func NewApp(configFilePath string) App {
 			Addr:    ":" + config.Server.Port,
 			Handler: mux,
 		},
-		DbContext: dbContext,
-		baseUrl:   baseUrl,
+		DbContext:    actualDbContext,
+		CacheContext: &cacheContext,
+		baseUrl:      baseUrl,
 	}
 	return app
 }
