@@ -9,6 +9,10 @@ import (
 	"github.com/amieldelatorre/shurl/internal/utils"
 )
 
+var (
+	IdempotencyKeyCleanupWorkerRunning = false
+)
+
 type ApiHealthHandler struct {
 	Logger utils.CustomJsonLogger
 	Config config.Config
@@ -24,7 +28,8 @@ func NewApiHealthHandler(logger utils.CustomJsonLogger, config config.Config, db
 }
 
 type HealthCheckResponse struct {
-	Database DatabaseHealthCheck `json:"database"`
+	IdempotencyKeyCleanupWorker IdempotencyKeyCleanupWorkerHealthCheck `json:"idempotency_key_cleanup_worker"`
+	Database                    DatabaseHealthCheck                    `json:"database"`
 }
 
 type DatabaseHealthCheck struct {
@@ -33,37 +38,40 @@ type DatabaseHealthCheck struct {
 	Error   string `json:"error,omitempty"`
 }
 
+type IdempotencyKeyCleanupWorkerHealthCheck struct {
+	Running bool `json:"running"`
+}
+
 func (h *ApiHealthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	response := HealthCheckResponse{
+		IdempotencyKeyCleanupWorker: IdempotencyKeyCleanupWorkerHealthCheck{
+			Running: IdempotencyKeyCleanupWorkerRunning,
+		}}
 	err := h.Db.Ping(r.Context())
 	if err != nil {
-		EncodeResponse[HealthCheckResponse](w, http.StatusInternalServerError,
-			HealthCheckResponse{
-				Database: DatabaseHealthCheck{
-					Ok:    false,
-					Error: "could not ping database",
-				},
-			})
+		response.Database = DatabaseHealthCheck{
+			Ok:    false,
+			Error: "could not ping database",
+		}
+		EncodeResponse[HealthCheckResponse](w, http.StatusInternalServerError, response)
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
 
 	version, err := h.Db.GetDatabaseVersion(r.Context())
 	if err != nil {
-		EncodeResponse[HealthCheckResponse](w, http.StatusInternalServerError,
-			HealthCheckResponse{
-				Database: DatabaseHealthCheck{
-					Ok:    false,
-					Error: "could not get db version",
-				},
-			})
+		response.Database = DatabaseHealthCheck{
+			Ok:    false,
+			Error: "could not get db version",
+		}
+		EncodeResponse[HealthCheckResponse](w, http.StatusInternalServerError, response)
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
 
-	EncodeResponse[HealthCheckResponse](w, http.StatusOK, HealthCheckResponse{
-		Database: DatabaseHealthCheck{
-			Ok:      true,
-			Version: fmt.Sprintf("%d", version),
-		},
-	})
+	response.Database = DatabaseHealthCheck{
+		Ok:      true,
+		Version: fmt.Sprintf("%d", version),
+	}
+	EncodeResponse[HealthCheckResponse](w, http.StatusOK, response)
 }
