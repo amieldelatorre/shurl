@@ -15,6 +15,7 @@ import (
 	"github.com/amieldelatorre/shurl/internal/db"
 	"github.com/amieldelatorre/shurl/internal/handlers"
 	"github.com/amieldelatorre/shurl/internal/utils"
+	"github.com/amieldelatorre/shurl/internal/workers"
 )
 
 type App struct {
@@ -71,9 +72,7 @@ func NewApp(configFilePath string) App {
 	return app
 }
 
-func (a *App) Exit() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-	defer cancel()
+func (a *App) Exit(ctx context.Context) {
 	a.Logger.Info(ctx, "Exiting application...")
 
 	a.Logger.Info(ctx, "Shutting down server")
@@ -86,24 +85,35 @@ func (a *App) Exit() {
 }
 
 func (a *App) Run() {
-	ctx := context.Background()
-	stopChan := make(chan os.Signal, 1)
-	signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+
+	errChan := make(chan error, 1)
 
 	go func() {
 		a.Logger.Info(ctx, "Attempting to start the server...")
 		a.Logger.Info(ctx, fmt.Sprintf("Starting server on port %s", a.Server.Addr))
 		a.Logger.Info(ctx, fmt.Sprintf("Server will be available on %s", a.baseUrl))
-		err := a.Server.ListenAndServe()
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			a.Logger.ErrorExit(ctx, "Something went wrong with the server", "error", err)
-		}
+		errChan <- a.Server.ListenAndServe()
 	}()
 
-	sig := <-stopChan
+	go func() {
+		workers.IdempotencyKeyCleanupWorker(ctx, a.Logger, a.Config.IdempotencyKeyCleanupWorker.IntervalSeconds, a.DbContext, a.Config.IdempotencyKeyCleanupWorker.ErrorsFatal)
+	}()
 
-	a.Logger.Info(ctx, fmt.Sprintf("Received signal '%+v', attempting to shutdown", sig))
-	a.Exit()
+	select {
+	case err := <-errChan:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			a.Logger.ErrorExit(context.Background(), "Something went wrong with the server", "error", err)
+		}
+	case <-ctx.Done():
+		a.Logger.Info(context.Background(), "Received signal, attempting to shutdown")
+
+	}
+
+	exitCtx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+	a.Exit(exitCtx)
 }
 
 func getBaseUrlString(httpsEnabled bool, domain string, port string, appendPort bool) string {

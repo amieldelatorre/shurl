@@ -17,6 +17,6 @@ openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:secp521r1 -out jwt_priv
     - [x] Allow Login
     - [x] Allow Registration
     - [x] Allow anonymous creation
-- [ ] Background worker for deleting expired idempotency key
+- [x] Background worker for deleting expired idempotency key
 - [ ] Background worker for deleting expired short urls
 - [ ] Redis cache option

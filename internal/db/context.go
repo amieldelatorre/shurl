@@ -15,4 +15,6 @@ type DbContext interface {
 	GetShortUrlBySlug(ctx context.Context, slug string) (*types.ShortUrl, error)
 	CreateUser(ctx context.Context, idempotencyKey uuid.UUID, requestHash string, req types.CreateUserRequest) (*types.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*types.User, error)
+	DeleteExpiredIdempotencyKeys(ctx context.Context) (int, error)
+	DeleteExpiredIdempotencyKeysBatched(ctx context.Context, batchSize int) (int, error)
 }

@@ -18,8 +18,9 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
+	Server                      ServerConfig                `mapstructure:"server"`
+	Database                    DatabaseConfig              `mapstructure:"database"`
+	IdempotencyKeyCleanupWorker IdempotencyKeyCleanupWorker `mapstructure:"idempotency_key_cleanup_worker"`
 }
 
 type ServerConfig struct {
@@ -43,6 +44,11 @@ type AuthConfig struct {
 	// TODO: Make it possible to read from a file that is passed in
 
 	JwtEcdsaParsedKey *ecdsa.PrivateKey `mapstructure:"-" validate:"-"`
+}
+
+type IdempotencyKeyCleanupWorker struct {
+	IntervalSeconds int  `mapstructure:"interval_seconds" validate:"required,min=300,max=21600"`
+	ErrorsFatal     bool `mapstructure:"errors_fatal" validate:"required"`
 }
 
 type DatabaseConfig struct {
@@ -75,6 +81,9 @@ func SetDefaults(v *viper.Viper) {
 
 	v.SetDefault("server.auth.jwt_signing_method", "ES512")
 	v.SetDefault("server.auth.jwt_issuer", "shurl")
+
+	v.SetDefault("idempotency_key_cleanup_worker.interval_seconds", 600)
+	v.SetDefault("idempotency_key_cleanup_worker.errors_fatal", true)
 }
 
 func TrimConfigs(config Config) Config {

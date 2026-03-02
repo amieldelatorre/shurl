@@ -171,6 +171,27 @@ func (p *PostgreSQLContext) GetUserByEmail(ctx context.Context, email string) (*
 	})
 }
 
+func (p *PostgreSQLContext) DeleteExpiredIdempotencyKeys(ctx context.Context) (int, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (int, error) {
+		ct, err := tx.Exec(ctx, `DELETE FROM idempotency_keys WHERE expires_at < NOW()`)
+		return int(ct.RowsAffected()), err
+	})
+}
+
+func (p *PostgreSQLContext) DeleteExpiredIdempotencyKeysBatched(ctx context.Context, batchSize int) (int, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (int, error) {
+		ct, err := tx.Exec(ctx,
+			`DELETE FROM idempotency_keys 
+				WHERE id IN (
+					SELECT id FROM idempotency_keys
+					WHERE expires_at < NOW()
+					LIMIT $1
+				)
+			`, batchSize)
+		return int(ct.RowsAffected()), err
+	})
+}
+
 func storeIdempotencyKey(ctx context.Context, tx pgx.Tx, idempotencyKey uuid.UUID, requestHash string, referenceId uuid.UUID) (bool, string, uuid.UUID, error) {
 	idempotencyKeyUuid, err := uuid.NewV7()
 	if err != nil {
