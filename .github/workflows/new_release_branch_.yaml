@@ -55,9 +55,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        docker-platform-arch:
-          - amd64
-          - arm64
+        include:
+          - docker-platform-arch: amd64
+            runner: ubuntu-24.04
+          - docker-platform-arch: arm64
+            runner: ubuntu-24.04-arm
     outputs:
       docker-platform-arch-amd64-tags: ${{ steps.output.outputs.docker-platform-arch-amd64-tags }}
       docker-platform-arch-arm64-tags: ${{ steps.output.outputs.docker-platform-arch-arm64-tags }}
