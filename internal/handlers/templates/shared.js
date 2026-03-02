@@ -31,6 +31,9 @@ export const NOTIFICATION_CONTAINER = document.getElementById(NOTIFICATION_CONTA
 export const GENERIC_SERVER_ERROR_MESSAGE = "Something went wrong with the server, please try again later";
 export const TOO_MANY_REQUESTS_MESSAGE = "Too many requests. Please try again in a few minutes."
 
+export const PAGE_LOADING_CONTAINER_ID = "page-loading";
+export const PAGE_LOADING_CONTAINER = document.getElementById(PAGE_LOADING_CONTAINER_ID);
+
 export const SUCCESS_BUTTON_CLASS = "success-button";
 export const ERROR_BUTTON_CLASS = "error-button";
 export const BUTTON_NORMAL_TEXT = "Submit";
@@ -251,15 +254,14 @@ export function addCookieBanner() {
 }
 
 export async function isLoggedIn() {
+    PAGE_LOADING_CONTAINER.hidden = false;
+    
     let result = await fetchWithRetry(
         VALIDATE_URL_ENDPOINT,
         "GET"
     );
 
-    if (!result.isError && result.statusCode == 200) {
-        return true;
-    }
-
+    PAGE_LOADING_CONTAINER.hidden = true;
     // everything else, even connection errors is false
-    return false;
+    return (!result.isError && result.statusCode == 200);
 }

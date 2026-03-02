@@ -30,7 +30,23 @@ h1, h2, h3, h4 {
 
 .main {
     height: 100%;
-    padding-top: 20px
+    padding-top: 20px;
+    position: relative;
+}
+
+#page-loading {
+    position: fixed;
+    height: 100vh;
+    width: 100%;
+    z-index: 900;
+    background: grey;
+    align-content: center;
+}
+
+#page-loading .spinner {
+    height: 100px;
+    width: 100px;
+    margin: auto;
 }
 
 .header {
