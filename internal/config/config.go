@@ -95,6 +95,7 @@ func SetDefaults(v *viper.Viper) {
 
 	v.SetDefault("cache.enabled", false)
 	v.SetDefault("cache.driver", "valkey")
+	v.SetDefault("cache.port", "6379")
 }
 
 func TrimConfigs(config Config) Config {
