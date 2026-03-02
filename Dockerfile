@@ -8,7 +8,7 @@ COPY ./cmd ./cmd
 COPY ./internal ./internal
 COPY ./main.go ./
 RUN ls -alh
-RUN CGO_ENABLED=0 GOOS=linux go build .
+RUN GOOS=linux go build .
 
 FROM debian:13.3 AS final
 RUN apt-get update && apt-get install curl netcat-openbsd bind9-dnsutils -y
