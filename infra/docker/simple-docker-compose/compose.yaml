@@ -55,7 +55,7 @@ services:
 
 ##################################### Shurl #####################################
   shurl:
-    image: ghcr.io/amieldelatorre/shurl:0.0.1
+    image: ghcr.io/amieldelatorre/shurl:0.0.8
     restart: unless-stopped
     container_name: shurl
     security_opt:
