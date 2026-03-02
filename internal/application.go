@@ -29,13 +29,15 @@ type App struct {
 }
 
 func NewApp(configFilePath string) App {
-	logger := utils.NewCustomJsonLogger(os.Stdout, slog.LevelDebug)
+	tempLogger := utils.NewCustomJsonLogger(os.Stdout, slog.LevelDebug)
 	ctx := context.Background()
 
-	config, err := config.LoadConfig(configFilePath, ctx, logger)
+	config, err := config.LoadConfig(configFilePath)
 	if err != nil {
-		logger.ErrorExit(ctx, err.Error())
+		tempLogger.ErrorExit(ctx, err.Error())
 	}
+
+	logger := utils.NewCustomJsonLogger(os.Stdout, config.Log.SlogLevel)
 
 	if config.Server.HttpsEnabled {
 		handlers.CookieAccessTokenName = "__Host-" + handlers.CookieAccessTokenName

@@ -160,7 +160,7 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Add IP address
-	h.Logger.Warn(r.Context(), "login successful")
+	h.Logger.Info(r.Context(), "login successful")
 }
 
 type ValidateResponse struct {

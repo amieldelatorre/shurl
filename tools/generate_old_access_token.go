@@ -1,28 +1,23 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"time"
 
 	"github.com/amieldelatorre/shurl/internal/config"
 	"github.com/amieldelatorre/shurl/internal/handlers"
-	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
 func main() {
 	// Run from root directory of the project `go run tools/generate_old_access_token.go`
-	logger := utils.NewCustomJsonLogger(os.Stdout, slog.LevelDebug)
-	ctx := context.Background()
 	configFilePath := "example-config.yaml"
 	jwtKey := "-----BEGIN PRIVATE KEY-----\nMIHuAgEAMBAGByqGSM49AgEGBSuBBAAjBIHWMIHTAgEBBEIBE1c1laUlgGPVWVPH\n6jAzB6CcFpPhea12DnfsGZSQ5oOr7hHIfg8ISMCUdtSfFf1VhsO+8eLeJuinp4ro\nr4vMqVChgYkDgYYABABfllyQMGEalHCmMZTKohOHKP3FOhmv4sG7WVZ72Wb1YLqT\noJ7/BhTiRID9OIWB7n78SLQ2xvuCJLlRbHrtqSRoQwF96gLgi7hSBUUP8Sdhhe8y\nrjel1nBKL4NfJWda4hyVEgpiqa9UJIqVkpDi3EciHDYLUMW/pcl78otmhGkncz1+\npg==\n-----END PRIVATE KEY-----"
 	err := os.Setenv("SERVER_AUTH_JWT_KEY", jwtKey)
 
-	config, err := config.LoadConfig(configFilePath, ctx, logger)
+	config, err := config.LoadConfig(configFilePath)
 	if err != nil {
 		panic(err)
 	}

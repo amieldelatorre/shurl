@@ -1,18 +1,17 @@
 package config
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
-	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
@@ -22,6 +21,7 @@ type Config struct {
 	Database                    DatabaseConfig              `mapstructure:"database"`
 	IdempotencyKeyCleanupWorker IdempotencyKeyCleanupWorker `mapstructure:"idempotency_key_cleanup_worker"`
 	Cache                       CacheConfig                 `mapstructure:"cache"`
+	Log                         LogConfig                   `mapstructure:"log"`
 }
 
 type ServerConfig struct {
@@ -68,6 +68,11 @@ type CacheConfig struct {
 	Port    string `mapstructure:"port" validate:"required_if=Enabled true"`
 }
 
+type LogConfig struct {
+	Level     string     `mapstructure:"level" validate:"required,loglevelvalidator"`
+	SlogLevel slog.Level `mapstructure:"-" validate:"-"`
+}
+
 var (
 	AllowedConfigFileTypes = []string{
 		"env",
@@ -96,6 +101,8 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("cache.enabled", false)
 	v.SetDefault("cache.driver", "valkey")
 	v.SetDefault("cache.port", "6379")
+
+	v.SetDefault("log.level", "INFO")
 }
 
 func TrimConfigs(config Config) Config {
@@ -118,10 +125,18 @@ func TrimConfigs(config Config) Config {
 	config.Cache.Host = strings.TrimSpace(config.Cache.Host)
 	config.Cache.Port = strings.TrimSpace(config.Cache.Port)
 
+	config.Log.Level = strings.TrimSpace(config.Log.Level)
+
 	return config
 }
 
-func LoadConfig(configFilePath string, ctx context.Context, logger utils.CustomJsonLogger) (*Config, error) {
+func validateLogLevel(field validator.FieldLevel) bool {
+	var l slog.Level
+	err := l.UnmarshalText([]byte(field.Field().String()))
+	return err == nil
+}
+
+func LoadConfig(configFilePath string) (*Config, error) {
 	v := viper.NewWithOptions(viper.ExperimentalBindStruct())
 	SetDefaults(v)
 
@@ -129,13 +144,13 @@ func LoadConfig(configFilePath string, ctx context.Context, logger utils.CustomJ
 		configFilePathInfo, err := os.Stat(configFilePath)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				logger.ErrorExit(ctx, "Config file provided cannot be found", "filepath", configFilePath)
+				return nil, fmt.Errorf("Config file provided cannot be found '%s'", configFilePath)
 			} else {
-				logger.ErrorExit(ctx, "Error checking config file provided", "error", err.Error())
+				return nil, err
 			}
 		}
 		if configFilePathInfo.IsDir() {
-			logger.ErrorExit(ctx, "Config file provided is a directory, not a file", "filepath", configFilePath)
+			return nil, fmt.Errorf("Config file provided is a directory, not a file'%s'", configFilePath)
 		}
 
 		fullFileName := filepath.Base(configFilePath)
@@ -162,6 +177,11 @@ func LoadConfig(configFilePath string, ctx context.Context, logger utils.CustomJ
 	config = TrimConfigs(config)
 
 	validate := validator.New()
+	err = validate.RegisterValidation("loglevelvalidator", validateLogLevel)
+	if err != nil {
+		return nil, err
+	}
+
 	err = validate.Struct(&config)
 	if err != nil {
 		return nil, err
@@ -181,6 +201,11 @@ func LoadConfig(configFilePath string, ctx context.Context, logger utils.CustomJ
 	config.Server.Auth.JwtEcdsaParsedKey, ok = key.(*ecdsa.PrivateKey)
 	if !ok {
 		return nil, errors.New("Could not parse ecdsa.PrivateKey")
+	}
+
+	err = config.Log.SlogLevel.UnmarshalText([]byte(config.Log.Level))
+	if err != nil {
+		return nil, err
 	}
 
 	return &config, nil
