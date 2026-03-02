@@ -12,7 +12,7 @@ import (
 
 func IdempotencyKeyCleanupWorker(ctx context.Context, logger utils.CustomJsonLogger, intervalSeconds int, dbContext db.DbContext, errorsFatal bool) {
 	ctx = context.WithValue(ctx, utils.RequestIdName, "idempotencyKeyCleanupWorker")
-	logger.Info(ctx, "starting idempotency key cleanup worker")
+	logger.Info(ctx, fmt.Sprintf("starting idempotency key cleanup worker with interval an of %d seconds", intervalSeconds))
 	handlers.IdempotencyKeyCleanupWorkerRunning = true
 
 	ticker := time.NewTicker(time.Duration(intervalSeconds) * time.Second)
@@ -25,7 +25,7 @@ func IdempotencyKeyCleanupWorker(ctx context.Context, logger utils.CustomJsonLog
 			handlers.IdempotencyKeyCleanupWorkerRunning = false
 			return
 		case <-ticker.C:
-			logger.Info(ctx, "idempotency key cleanup worker woken up, performing cleanup")
+			logger.Debug(ctx, "idempotency key cleanup worker woken up, performing cleanup")
 			err := performIdempotencyKeyCleanup(ctx, logger, dbContext)
 			if err != nil {
 				logger.Error(ctx, err.Error())
@@ -35,6 +35,8 @@ func IdempotencyKeyCleanupWorker(ctx context.Context, logger utils.CustomJsonLog
 					return
 				}
 			}
+
+			logger.Debug(ctx, fmt.Sprintf("idempotency key cleanup worker sleeping for %d seconds", intervalSeconds))
 		}
 	}
 }
