@@ -31,6 +31,10 @@ func (p *PostgreSQLContext) Ping(ctx context.Context) error {
 	return err
 }
 
+func (p *PostgreSQLContext) Close() {
+	p.dbPool.Close()
+}
+
 func (p *PostgreSQLContext) GetDatabaseVersion(ctx context.Context) (int64, error) {
 	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (int64, error) {
 		var version int64

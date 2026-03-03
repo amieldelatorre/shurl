@@ -36,6 +36,10 @@ func (v *ValkeyCacheContext) Ping(ctx context.Context) error {
 	return err
 }
 
+func (v *ValkeyCacheContext) Close() {
+	v.client.Close()
+}
+
 func (v *ValkeyCacheContext) GetDatabaseVersion(ctx context.Context) (int64, error) {
 	resStr, err := v.getKey(ctx, DB_VERSION_KEY)
 	if err != nil {

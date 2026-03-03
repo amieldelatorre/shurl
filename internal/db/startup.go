@@ -17,7 +17,7 @@ type DatabaseMigrations interface {
 	GetGooseDialect() string
 }
 
-func GetDatabaseContext(ctx context.Context, config config.Config, logger utils.CustomJsonLogger) DbContext {
+func GetDatabaseContext(ctx context.Context, config config.Config, logger utils.CustomJsonLogger, forceRunMigrations bool) DbContext {
 	dbMigrations, err := postgresql.NewPostgresDatabaseMigrations(ctx, config, logger)
 	if err != nil {
 		logger.ErrorExit(ctx, err.Error())
@@ -29,10 +29,14 @@ func GetDatabaseContext(ctx context.Context, config config.Config, logger utils.
 
 	currentDbVersion, err := goose.GetDBVersion(dbMigrations.GetDb())
 	logger.Info(ctx, "Current database version is: %v", "currentDbVersion", currentDbVersion)
-
-	goose.SetBaseFS(dbMigrations.GetEmbedMigrations())
-	if err = goose.Up(dbMigrations.GetDb(), "migrations"); err != nil {
-		logger.ErrorExit(ctx, err.Error())
+	if *config.Database.RunMigrations || forceRunMigrations {
+		logger.Info(ctx, "Running migrations")
+		goose.SetBaseFS(dbMigrations.GetEmbedMigrations())
+		if err = goose.Up(dbMigrations.GetDb(), "migrations"); err != nil {
+			logger.ErrorExit(ctx, err.Error())
+		}
+	} else {
+		logger.Info(ctx, "Skipped migrations")
 	}
 
 	logger.Info(ctx, "Successfully connected to the database")

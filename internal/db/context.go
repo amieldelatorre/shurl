@@ -19,4 +19,5 @@ type DbContext interface {
 	DeleteExpiredIdempotencyKeysBatched(ctx context.Context, batchSize int) (int, error)
 	DeleteExpiredShortUrls(ctx context.Context) (int, error)
 	DeleteExpiredShortUrlsBatched(ctx context.Context, batchSize int) (int, error)
+	Close()
 }

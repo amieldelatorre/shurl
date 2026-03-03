@@ -59,12 +59,13 @@ type ShortUrlCleanupWorker struct {
 }
 
 type DatabaseConfig struct {
-	Driver   string `mapstructure:"driver" validate:"required,oneof=postgres"`
-	Host     string `mapstructure:"host" validate:"required"`
-	Port     string `mapstructure:"port" validate:"required"`
-	Name     string `mapstructure:"name" validate:"required"`
-	Username string `mapstructure:"username" validate:"required"`
-	Password string `mapstructure:"password" validate:"required"`
+	RunMigrations *bool  `mapstructure:"run_migrations" validate:"required"`
+	Driver        string `mapstructure:"driver" validate:"required,oneof=postgres"`
+	Host          string `mapstructure:"host" validate:"required"`
+	Port          string `mapstructure:"port" validate:"required"`
+	Name          string `mapstructure:"name" validate:"required"`
+	Username      string `mapstructure:"username" validate:"required"`
+	Password      string `mapstructure:"password" validate:"required"`
 }
 
 type CacheConfig struct {
@@ -105,6 +106,7 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("short_url_cleanup_worker.interval_seconds", 600)
 	v.SetDefault("short_url_cleanup_worker.errors_fatal", true)
 
+	v.SetDefault("database.run_migrations", true)
 	v.SetDefault("database.port", "5432")
 
 	v.SetDefault("cache.enabled", false)

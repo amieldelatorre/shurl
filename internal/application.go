@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -45,7 +46,7 @@ func NewApp(configFilePath string) App {
 
 	baseUrl := getBaseUrlString(config.Server.HttpsEnabled, config.Server.Domain, config.Server.Port, config.Server.AppendPort)
 
-	dbContext := db.GetDatabaseContext(ctx, *config, logger)
+	dbContext := db.GetDatabaseContext(ctx, *config, logger, false)
 	actualDbContext := dbContext
 	var cacheContext db.DbContext
 	if config.Cache.Enabled != nil && *config.Cache.Enabled {
@@ -100,26 +101,34 @@ func (a *App) Run() {
 	defer stop()
 
 	errChan := make(chan error, 1)
+	var wg sync.WaitGroup
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		a.Logger.Info(ctx, "Attempting to start the server...")
 		a.Logger.Info(ctx, fmt.Sprintf("Starting server on port %s", a.Server.Addr))
 		a.Logger.Info(ctx, fmt.Sprintf("Server will be available on %s", a.baseUrl))
 		errChan <- a.Server.ListenAndServe()
 	}()
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		workers.IdempotencyKeyCleanupWorker(ctx, a.Logger, a.Config.IdempotencyKeyCleanupWorker.IntervalSeconds, a.DbContext, a.Config.IdempotencyKeyCleanupWorker.ErrorsFatal)
 	}()
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		workers.ShortUrlCleanupWorker(ctx, a.Logger, a.Config.ShortUrlCleanupWorker.IntervalSeconds, a.DbContext, a.Config.ShortUrlCleanupWorker.ErrorsFatal)
 	}()
 
 	select {
 	case err := <-errChan:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			a.Logger.ErrorExit(context.Background(), "Something went wrong with the server", "error", err)
+			stop()
+			a.Logger.Error(context.Background(), "Something went wrong with the server", "error", err)
 		}
 	case <-ctx.Done():
 		a.Logger.Info(context.Background(), "Received signal, attempting to shutdown")
@@ -129,6 +138,8 @@ func (a *App) Run() {
 	exitCtx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 	a.Exit(exitCtx)
+	wg.Wait()
+	fmt.Println("All workers exited")
 }
 
 func getBaseUrlString(httpsEnabled bool, domain string, port string, appendPort bool) string {
