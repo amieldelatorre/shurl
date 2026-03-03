@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var configFilePath string
+
 var rootCmd = &cobra.Command{
 	Use:   "shurl",
 	Short: "For url shortener",
@@ -20,4 +22,5 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().StringVarP(&configFilePath, "filepath", "f", "", "The path to the config file, accepted file types are: .env, .ini, .toml, .yaml, .json")
 }

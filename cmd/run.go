@@ -7,8 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var configFilePath string
-
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Runs the url shortener application",
@@ -22,6 +20,4 @@ var runCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-
-	runCmd.Flags().StringVarP(&configFilePath, "filepath", "f", "", "The path to the config file, accepted file types are: .env, .ini, .toml, .yaml, .json")
 }

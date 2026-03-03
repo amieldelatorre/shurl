@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,7 +37,7 @@ func NewApiUserHandler(logger utils.CustomJsonLogger, dbContext db.DbContext) Ap
 	return ApiUserHandler{Logger: logger, Db: dbContext}
 }
 
-type postUserRequest struct {
+type PostUserRequest struct {
 	Username        string `json:"username" validate:"required,alphanum,lowercase,min=3"`
 	Email           string `json:"email" validate:"required,email"`
 	Password        string `json:"password" validate:"required,min=8"`
@@ -52,7 +53,7 @@ type postUserResponse struct {
 }
 
 func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
-	var req postUserRequest
+	var req PostUserRequest
 
 	// get idempotency key from header
 	idempotencyKeyString := r.Header.Get(types.HeadersIdempotencyKey)
@@ -73,59 +74,23 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// validate request
-	validate := validator.New()
-	err = validate.Struct(&req)
+	newUser, err := CreateUser(r.Context(), h.Db, req, idempotencyKey)
 	if err != nil {
-		var vError validator.ValidationErrors
-		if errors.As(err, &vError) {
-			EncodeResponse[types.ErrorResponseList](w, http.StatusBadRequest, types.ErrorResponseList{Error: EncodeValidationError(vError)})
-			return
-		}
+		var validationError validator.ValidationErrors
+		var duplicateIdempotencyKeyError *types.DuplicateIdempotencyKeyError
+		var duplicateEmailOrUsername *types.EmailOrUsernameExistsError
 
-		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
-		h.Logger.Error(r.Context(), err.Error())
-		return
-	}
-
-	// create password hash
-	hashedPassword, err := argon2id.CreateHash(req.Password, argon2idParams)
-	if err != nil {
-		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
-		h.Logger.Error(r.Context(), err.Error())
-		return
-	}
-
-	// create new user
-	requestHash := db.HashCreateUserRequest(req.Username, req.Email)
-	newUserId, err := uuid.NewV7()
-	if err != nil {
-		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
-		h.Logger.Error(r.Context(), err.Error())
-		return
-	}
-
-	newUser, err := h.Db.CreateUser(r.Context(), idempotencyKey, requestHash, types.CreateUserRequest{
-		Id:           newUserId,
-		Username:     req.Username,
-		Email:        req.Email,
-		PasswordHash: hashedPassword,
-	})
-	if err != nil {
-		var idempotencyKeyUsedError *types.DuplicateIdempotencyKeyError
-		if errors.As(err, &idempotencyKeyUsedError) {
+		switch {
+		case errors.As(err, &validationError):
+			EncodeResponse[types.ErrorResponseList](w, http.StatusBadRequest, types.ErrorResponseList{Error: EncodeValidationError(validationError)})
+		case errors.As(err, &duplicateIdempotencyKeyError):
 			EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("%s header value has already been used", types.HeadersIdempotencyKey)})
-			return
-		}
-
-		var uniqueViolationError *types.EmailOrUsernameExistsError
-		if errors.As(err, &uniqueViolationError) {
+		case errors.As(err, &duplicateEmailOrUsername):
 			EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: err.Error()})
-			return
+		default:
+			EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+			h.Logger.Error(r.Context(), err.Error())
 		}
-
-		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
-		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
 
@@ -141,4 +106,34 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 		h.Logger.Error(r.Context(), err.Error())
 	}
 	h.Logger.Info(r.Context(), "PostUser created user with id '%s'", "userId", newUser.Id, "responseStatusCode", 201)
+}
+
+func CreateUser(ctx context.Context, dbContext db.DbContext, requestedUser PostUserRequest, idempotencyKey uuid.UUID) (*types.User, error) {
+	// validate request
+	validate := validator.New()
+	err := validate.Struct(&requestedUser)
+	if err != nil {
+		return nil, err
+	}
+
+	// create password hash
+	hashedPassword, err := argon2id.CreateHash(requestedUser.Password, argon2idParams)
+	if err != nil {
+		return nil, err
+	}
+
+	// create new user
+	requestHash := db.HashCreateUserRequest(requestedUser.Username, requestedUser.Email)
+	newUserId, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
+	newUser, err := dbContext.CreateUser(ctx, idempotencyKey, requestHash, types.CreateUserRequest{
+		Id:           newUserId,
+		Username:     requestedUser.Username,
+		Email:        requestedUser.Email,
+		PasswordHash: hashedPassword,
+	})
+	return newUser, err
 }
