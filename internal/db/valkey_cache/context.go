@@ -195,6 +195,14 @@ func (v *ValkeyCacheContext) DeleteExpiredIdempotencyKeysBatched(ctx context.Con
 	return v.dbContext.DeleteExpiredIdempotencyKeysBatched(ctx, batchSize)
 }
 
+func (v *ValkeyCacheContext) DeleteExpiredShortUrls(ctx context.Context) (int, error) {
+	return v.dbContext.DeleteExpiredShortUrls(ctx)
+}
+
+func (v *ValkeyCacheContext) DeleteExpiredShortUrlsBatched(ctx context.Context, batchSize int) (int, error) {
+	return v.dbContext.DeleteExpiredShortUrlsBatched(ctx, batchSize)
+}
+
 func (v *ValkeyCacheContext) getKey(ctx context.Context, key string) (*string, error) {
 	value, err := v.client.Get(ctx, key)
 	if err != nil {

@@ -112,6 +112,10 @@ func (a *App) Run() {
 		workers.IdempotencyKeyCleanupWorker(ctx, a.Logger, a.Config.IdempotencyKeyCleanupWorker.IntervalSeconds, a.DbContext, a.Config.IdempotencyKeyCleanupWorker.ErrorsFatal)
 	}()
 
+	go func() {
+		workers.ShortUrlCleanupWorker(ctx, a.Logger, a.Config.ShortUrlCleanupWorker.IntervalSeconds, a.DbContext, a.Config.ShortUrlCleanupWorker.ErrorsFatal)
+	}()
+
 	select {
 	case err := <-errChan:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {

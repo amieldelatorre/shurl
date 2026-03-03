@@ -5,7 +5,7 @@ const CREATE_URL_FORM_ID = "index-create-url-form";
 const CREATE_URL_FORM = document.getElementById(CREATE_URL_FORM_ID);
 
 
-function createSuccessfulLinkBox(destinationUrl, shortUrl) {
+function createSuccessfulLinkBox(destinationUrl, shortUrl, expires_at) {
     const successfulLinkCreateDiv = document.createElement("div");
     successfulLinkCreateDiv.classList.add("successful-link-create");
 
@@ -34,6 +34,9 @@ function createSuccessfulLinkBox(destinationUrl, shortUrl) {
         });
     })
 
+    const expiryP = document.createElement("p");
+    expiryP.textContent = `Expiry: ${expires_at}`;
+
     const arrowImg = document.createElement("img");
     arrowImg.classList.add("arrow-to-destination-svg");
     arrowImg.src = "/_/assets/right-arrow-circle-svgrepo-com.svg";
@@ -47,6 +50,7 @@ function createSuccessfulLinkBox(destinationUrl, shortUrl) {
     successfulLinkCreateDiv.appendChild(successfulLinkCreateHeader);
     successfulLinkCreateDiv.appendChild(createCloseButton());
     successfulLinkCreateDiv.appendChild(shortUrlCreated);
+    successfulLinkCreateDiv.appendChild(expiryP);
     successfulLinkCreateDiv.appendChild(arrowImg);
     successfulLinkCreateDiv.appendChild(destinationUrlSpan);
 
@@ -76,7 +80,7 @@ async function onSubmit(event) {
     )
 
     if (!result.isError) {
-        const successfulLinkCreateDiv = createSuccessfulLinkBox(result.json.destination_url, result.json.url);
+        const successfulLinkCreateDiv = createSuccessfulLinkBox(result.json.destination_url, result.json.url, result.json.expires_at);
         const parent = document.getElementById("index-success-links");
         parent.prepend(successfulLinkCreateDiv);
 

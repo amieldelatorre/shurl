@@ -11,6 +11,7 @@ import (
 
 var (
 	IdempotencyKeyCleanupWorkerRunning = false
+	ShortUrlCleanupWorkerRunning       = false
 )
 
 type ApiHealthHandler struct {
@@ -31,6 +32,7 @@ func NewApiHealthHandler(logger utils.CustomJsonLogger, config config.Config, db
 
 type HealthCheckResponse struct {
 	IdempotencyKeyCleanupWorker IdempotencyKeyCleanupWorkerHealthCheck `json:"idempotency_key_cleanup_worker"`
+	ShortUrlCleanUpWorker       ShortUrlCleanupWorkerHealthCheck       `json:"short_url_cleanup_worker"`
 	Database                    DatabaseHealthCheck                    `json:"database"`
 	Cache                       CacheHealthCheck                       `json:"cache"`
 	Errors                      []string                               `json:"errors,omitempty"`
@@ -50,6 +52,10 @@ type IdempotencyKeyCleanupWorkerHealthCheck struct {
 	Running bool `json:"running"`
 }
 
+type ShortUrlCleanupWorkerHealthCheck struct {
+	Running bool `json:"running"`
+}
+
 func (h *ApiHealthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	errs := []string{}
 	status := http.StatusOK
@@ -57,6 +63,9 @@ func (h *ApiHealthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	response := HealthCheckResponse{
 		IdempotencyKeyCleanupWorker: IdempotencyKeyCleanupWorkerHealthCheck{
 			Running: IdempotencyKeyCleanupWorkerRunning,
+		},
+		ShortUrlCleanUpWorker: ShortUrlCleanupWorkerHealthCheck{
+			Running: ShortUrlCleanupWorkerRunning,
 		},
 		Database: DatabaseHealthCheck{
 			Ok: true,

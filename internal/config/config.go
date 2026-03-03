@@ -20,6 +20,7 @@ type Config struct {
 	Server                      ServerConfig                `mapstructure:"server"`
 	Database                    DatabaseConfig              `mapstructure:"database"`
 	IdempotencyKeyCleanupWorker IdempotencyKeyCleanupWorker `mapstructure:"idempotency_key_cleanup_worker"`
+	ShortUrlCleanupWorker       ShortUrlCleanupWorker       `mapstructure:"short_url_cleanup_worker"`
 	Cache                       CacheConfig                 `mapstructure:"cache"`
 	Log                         LogConfig                   `mapstructure:"log"`
 }
@@ -48,6 +49,11 @@ type AuthConfig struct {
 }
 
 type IdempotencyKeyCleanupWorker struct {
+	IntervalSeconds int  `mapstructure:"interval_seconds" validate:"required,min=300,max=21600"`
+	ErrorsFatal     bool `mapstructure:"errors_fatal" validate:"required"`
+}
+
+type ShortUrlCleanupWorker struct {
 	IntervalSeconds int  `mapstructure:"interval_seconds" validate:"required,min=300,max=21600"`
 	ErrorsFatal     bool `mapstructure:"errors_fatal" validate:"required"`
 }
@@ -95,6 +101,9 @@ func SetDefaults(v *viper.Viper) {
 
 	v.SetDefault("idempotency_key_cleanup_worker.interval_seconds", 600)
 	v.SetDefault("idempotency_key_cleanup_worker.errors_fatal", true)
+
+	v.SetDefault("short_url_cleanup_worker.interval_seconds", 600)
+	v.SetDefault("short_url_cleanup_worker.errors_fatal", true)
 
 	v.SetDefault("database.port", "5432")
 

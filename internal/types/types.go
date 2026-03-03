@@ -13,6 +13,7 @@ type ShortUrl struct {
 	DestinationUrl string     `json:"destination_url"`
 	Slug           string     `json:"slug"`
 	CreatedAt      time.Time  `json:"created_at"`
+	ExpiresAt      time.Time  `json:"expires_at"`
 	UserId         *uuid.UUID `json:"user_id,omitempty"`
 }
 
@@ -21,6 +22,7 @@ type CreateShortUrlResponse struct {
 	DestinationUrl string     `json:"destination_url"`
 	Slug           string     `json:"slug"`
 	CreatedAt      time.Time  `json:"created_at"`
+	ExpiresAt      time.Time  `json:"expires_at"`
 	Url            string     `json:"url"`
 	UserId         *uuid.UUID `json:"user_id,omitempty"`
 }
@@ -30,6 +32,7 @@ type CreateShortUrl struct {
 	DestinationUrl string
 	Slug           string
 	UserId         *uuid.UUID
+	ExpiresAt      time.Time
 }
 
 type CreateUserRequest struct {

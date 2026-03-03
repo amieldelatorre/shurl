@@ -17,4 +17,6 @@ type DbContext interface {
 	GetUserByEmail(ctx context.Context, email string) (*types.User, error)
 	DeleteExpiredIdempotencyKeys(ctx context.Context) (int, error)
 	DeleteExpiredIdempotencyKeysBatched(ctx context.Context, batchSize int) (int, error)
+	DeleteExpiredShortUrls(ctx context.Context) (int, error)
+	DeleteExpiredShortUrlsBatched(ctx context.Context, batchSize int) (int, error)
 }

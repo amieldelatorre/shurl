@@ -79,12 +79,12 @@ func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.Create
 		}
 
 		err = tx.QueryRow(ctx,
-			`INSERT INTO short_urls (id, destination_url, slug, created_at, user_id)
-			 VALUES ($1, $2, $3, NOW(), $4)
+			`INSERT INTO short_urls (id, destination_url, slug, created_at, user_id, expires_at)
+			 VALUES ($1, $2, $3, NOW(), $4, $5)
 			 ON CONFLICT (id) DO UPDATE set id = EXCLUDED.id
-			 RETURNING id, destination_url, slug, created_at, user_id`,
-			req.Id, req.DestinationUrl, req.Slug, req.UserId).Scan(
-			&newShortUrl.Id, &newShortUrl.DestinationUrl, &newShortUrl.Slug, &newShortUrl.CreatedAt, &newShortUrl.UserId,
+			 RETURNING id, destination_url, slug, created_at, user_id, expires_at`,
+			req.Id, req.DestinationUrl, req.Slug, req.UserId, req.ExpiresAt).Scan(
+			&newShortUrl.Id, &newShortUrl.DestinationUrl, &newShortUrl.Slug, &newShortUrl.CreatedAt, &newShortUrl.UserId, &newShortUrl.ExpiresAt,
 		)
 		if err != nil {
 			return nil, err
@@ -178,12 +178,35 @@ func (p *PostgreSQLContext) DeleteExpiredIdempotencyKeys(ctx context.Context) (i
 	})
 }
 
+// untested
 func (p *PostgreSQLContext) DeleteExpiredIdempotencyKeysBatched(ctx context.Context, batchSize int) (int, error) {
 	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (int, error) {
 		ct, err := tx.Exec(ctx,
 			`DELETE FROM idempotency_keys 
 				WHERE id IN (
 					SELECT id FROM idempotency_keys
+					WHERE expires_at < NOW()
+					LIMIT $1
+				)
+			`, batchSize)
+		return int(ct.RowsAffected()), err
+	})
+}
+
+func (p *PostgreSQLContext) DeleteExpiredShortUrls(ctx context.Context) (int, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (int, error) {
+		ct, err := tx.Exec(ctx, `DELETE FROM short_urls WHERE expires_at < NOW()`)
+		return int(ct.RowsAffected()), err
+	})
+}
+
+// untested
+func (p *PostgreSQLContext) DeleteExpiredShortUrlsBatched(ctx context.Context, batchSize int) (int, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (int, error) {
+		ct, err := tx.Exec(ctx,
+			`DELETE FROM short_urls 
+				WHERE id IN (
+					SELECT id FROM short_urls
 					WHERE expires_at < NOW()
 					LIMIT $1
 				)

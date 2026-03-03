@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/amieldelatorre/shurl/internal/db"
 	"github.com/amieldelatorre/shurl/internal/types"
@@ -82,6 +83,7 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 		Id:             id,
 		DestinationUrl: req.DestinationUrl,
 		Slug:           slug,
+		ExpiresAt:      time.Now().Add(time.Duration(60*60*24*7) * time.Second), // 7 Days for now
 	}
 	if userIdUuid != uuid.Nil {
 		newShortUrl.UserId = &userIdUuid
@@ -107,6 +109,7 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 		DestinationUrl: shortUrl.DestinationUrl,
 		Slug:           shortUrl.Slug,
 		CreatedAt:      shortUrl.CreatedAt,
+		ExpiresAt:      shortUrl.ExpiresAt,
 		Url:            createShortUrl(h.BaseUrl, shortUrl.Slug),
 		UserId:         shortUrl.UserId,
 	}
