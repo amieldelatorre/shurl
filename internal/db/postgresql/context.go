@@ -257,7 +257,12 @@ func ExecWithRetry[T any](ctx context.Context, logger utils.CustomJsonLogger, db
 				return noResult, err
 			}
 			// use a different context here so that even if it does time out it still runs the rollback
-			defer tx.Rollback(context.Background())
+			defer func() {
+				err := tx.Rollback(context.Background())
+				if err != nil {
+					logger.Error(ctx, "failed to rollback", "error", err.Error())
+				}
+			}()
 
 			// Perform the query
 			val, err := fn(tx)

@@ -85,9 +85,15 @@ var createUserCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(createUserCmd)
 	createUserCmd.Flags().StringVar(&createUserCmdEmailInput, "email", "", "Email of the user to be created")
-	createUserCmd.MarkFlagRequired("email")
+	err := createUserCmd.MarkFlagRequired("email")
+	if err != nil {
+		panic(err)
+	}
 	createUserCmd.Flags().StringVar(&createUserCmdUsernameInput, "username", "", "Username of the user to be created")
-	createUserCmd.MarkFlagRequired("password")
+	err = createUserCmd.MarkFlagRequired("password")
+	if err != nil {
+		panic(err)
+	}
 	createUserCmd.Flags().StringVar(&createUserCmdPasswordInput, "password", "", "Password of the user to be created. WARNING: leading and trailing spaces will be trimmed")
 	createUserCmd.Flags().BoolVar(&createUserCmdPasswordFromStdin, "password-stdin", false, "Take password from stdin, this takes precedence if both this and the password flag is given. WARNING: leading and trailing spaces will be trimmed")
 }

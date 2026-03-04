@@ -174,7 +174,10 @@ func LoadConfig(configFilePath string) (*Config, error) {
 
 		v.SetConfigFile(configFilePath)
 		v.SetConfigType(fileExtension)
-		v.ReadInConfig()
+		err = v.ReadInConfig()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
