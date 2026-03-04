@@ -78,7 +78,10 @@ func TestHealthCheckOk(t *testing.T) {
 	if err = json.NewDecoder(res.Body).Decode(&health); err != nil {
 		t.Fatal("failed to decode body", err.Error())
 	}
-	res.Body.Close()
+	err = res.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if diff := cmp.Diff(expected, health); diff != "" {
 		t.Errorf("actual does not equal expected. diff: %s", diff)
@@ -138,7 +141,10 @@ func TestHealthCheckOkNoCache(t *testing.T) {
 	if err = json.NewDecoder(res.Body).Decode(&health); err != nil {
 		t.Fatal("failed to decode body", err.Error())
 	}
-	res.Body.Close()
+	err = res.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if diff := cmp.Diff(expected, health); diff != "" {
 		t.Errorf("actual does not equal expected. diff: %s", diff)
@@ -210,7 +216,10 @@ func TestHealthCheckDbNOk(t *testing.T) {
 	if err = json.NewDecoder(res.Body).Decode(&health); err != nil {
 		t.Fatal("failed to decode body", err.Error())
 	}
-	res.Body.Close()
+	err = res.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if diff := cmp.Diff(expected, health); diff != "" {
 		t.Errorf("actual does not equal expected. diff: %s", diff)
@@ -282,7 +291,10 @@ func TestHealthCheckCacheNOk(t *testing.T) {
 	if err = json.NewDecoder(res.Body).Decode(&health); err != nil {
 		t.Fatal("failed to decode body", err.Error())
 	}
-	res.Body.Close()
+	err = res.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if diff := cmp.Diff(expected, health); diff != "" {
 		t.Errorf("actual does not equal expected. diff: %s", diff)

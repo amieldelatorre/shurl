@@ -67,7 +67,7 @@ func (m *Middleware) IdempotencyKeyRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idempotencyKey := r.Header.Get(types.HeadersIdempotencyKey)
 		if strings.TrimSpace(idempotencyKey) == "" {
-			EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("Missing uuidv7 idempotency key header '%s'", types.HeadersIdempotencyKey)})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("Missing uuidv7 idempotency key header '%s'", types.HeadersIdempotencyKey)})
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -81,7 +81,7 @@ func (m *Middleware) AllowRegistration(next http.Handler) http.Handler {
 			return
 		}
 
-		EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Signup has been disabled by the administrator"})
+		EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusForbidden, types.ErrorResponse{Error: "Signup has been disabled by the administrator"})
 	})
 }
 
@@ -92,7 +92,7 @@ func (m *Middleware) AllowLogin(next http.Handler) http.Handler {
 			return
 		}
 
-		EncodeResponse[types.ErrorResponse](w, http.StatusForbidden, types.ErrorResponse{Error: "Login has been disabled by the administrator"})
+		EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusForbidden, types.ErrorResponse{Error: "Login has been disabled by the administrator"})
 	})
 }
 
@@ -100,13 +100,13 @@ func (m *Middleware) LoginRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		accessToken, err := m.GetAccessToken(r)
 		if err != nil {
-			EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 			m.Logger.Error(r.Context(), err.Error())
 			return
 		}
 
 		if accessToken == "" {
-			EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Login required"})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusUnauthorized, types.ErrorResponse{Error: "Login required"})
 			return
 		}
 
@@ -117,13 +117,13 @@ func (m *Middleware) LoginRequired(next http.Handler) http.Handler {
 		}
 
 		if !isValidAccessToken {
-			EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Invalid access token"})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusUnauthorized, types.ErrorResponse{Error: "Invalid access token"})
 			return
 		}
 
 		userId, err := uuid.Parse(claims.Subject)
 		if err != nil {
-			EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 			m.Logger.Error(r.Context(), err.Error())
 			return
 		}
@@ -137,7 +137,7 @@ func (m *Middleware) LoginRequiredOrAllowAnonymous(next http.Handler) http.Handl
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		accessToken, err := m.GetAccessToken(r)
 		if err != nil {
-			EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 			m.Logger.Error(r.Context(), err.Error())
 			return
 		}
@@ -151,7 +151,7 @@ func (m *Middleware) LoginRequiredOrAllowAnonymous(next http.Handler) http.Handl
 
 		// Scenario 1.
 		if accessToken == "" && !m.Config.Server.AllowAnonymous {
-			EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Login required"})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusUnauthorized, types.ErrorResponse{Error: "Login required"})
 			return
 		} else if accessToken == "" && m.Config.Server.AllowAnonymous { // Scenario 2
 			ctx := context.WithValue(r.Context(), UserIdKey, uuid.Nil)
@@ -167,13 +167,13 @@ func (m *Middleware) LoginRequiredOrAllowAnonymous(next http.Handler) http.Handl
 		}
 
 		if !isValidAccessToken {
-			EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Invalid access token"})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusUnauthorized, types.ErrorResponse{Error: "Invalid access token"})
 			return
 		}
 
 		userId, err := uuid.Parse(claims.Subject)
 		if err != nil {
-			EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 			m.Logger.Error(r.Context(), err.Error())
 			return
 		}
@@ -211,10 +211,10 @@ func (m *Middleware) handleAuthErrors(w http.ResponseWriter, ctx context.Context
 		errors.Is(err, jwt.ErrTokenSignatureInvalid) ||
 		errors.Is(err, jwt.ErrTokenUnverifiable) ||
 		errors.Is(err, jwt.ErrTokenRequiredClaimMissing) {
-		EncodeResponse[types.ErrorResponse](w, http.StatusUnauthorized, types.ErrorResponse{Error: "Invalid access token"})
+		EncodeResponse[types.ErrorResponse](m.Logger, ctx, w, http.StatusUnauthorized, types.ErrorResponse{Error: "Invalid access token"})
 		return
 	}
 
-	EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+	EncodeResponse[types.ErrorResponse](m.Logger, ctx, w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 	m.Logger.Error(ctx, err.Error())
 }

@@ -37,7 +37,7 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 	userIdValue := r.Context().Value(UserIdKey)
 	userIdUuid, ok := userIdValue.(uuid.UUID)
 	if !ok {
-		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 		h.Logger.Error(r.Context(), "casting uuid from context not ok")
 		return
 	}
@@ -45,14 +45,14 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 	idempotencyKeyString := r.Header.Get(types.HeadersIdempotencyKey)
 	idempotencyKey, err := uuid.Parse(idempotencyKeyString)
 	if err != nil {
-		EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: "idempotency key provided is not a valid UUID"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: "idempotency key provided is not a valid UUID"})
 		return
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		errorCode, message := parseJsonDecodeError(err)
-		EncodeResponse[types.ErrorResponse](w, errorCode, types.ErrorResponse{Error: message})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, errorCode, types.ErrorResponse{Error: message})
 		if errorCode == http.StatusInternalServerError {
 			h.Logger.Error(r.Context(), "Server error when parsing json body. error: %v", "error", err.Error())
 		}
@@ -61,20 +61,20 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 
 	req.DestinationUrl = strings.TrimSpace(req.DestinationUrl)
 	if req.DestinationUrl == "" {
-		EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: "`destination_url` cannot be null or empty"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: "`destination_url` cannot be null or empty"})
 		return
 	}
 
 	id, err := uuid.NewV7()
 	if err != nil {
-		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
 
 	slug, err := h.generateUniqueSlug(r.Context())
 	if err != nil {
-		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
@@ -94,12 +94,12 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		var idempotencyKeyUsedError *types.DuplicateIdempotencyKeyError
 		if errors.As(err, &idempotencyKeyUsedError) {
-			EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("%s header value has already been used", types.HeadersIdempotencyKey)})
+			EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("%s header value has already been used", types.HeadersIdempotencyKey)})
 			h.Logger.Error(r.Context(), err.Error())
 			return
 		}
 
-		EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
@@ -114,9 +114,7 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 		UserId:         shortUrl.UserId,
 	}
 
-	if err = EncodeResponse[types.CreateShortUrlResponse](w, http.StatusCreated, response); err != nil {
-		h.Logger.Error(r.Context(), err.Error())
-	}
+	EncodeResponse[types.CreateShortUrlResponse](h.Logger, r.Context(), w, http.StatusCreated, response)
 	h.Logger.Debug(r.Context(), "PostShortUrl created short url with id '%s'", "shortUrlId", shortUrl.Id, "responseStatusCode", 201)
 }
 

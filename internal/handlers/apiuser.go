@@ -59,7 +59,7 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 	idempotencyKeyString := r.Header.Get(types.HeadersIdempotencyKey)
 	idempotencyKey, err := uuid.Parse(idempotencyKeyString)
 	if err != nil {
-		EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: "idempotency key provided is not a valid UUID"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: "idempotency key provided is not a valid UUID"})
 		return
 	}
 
@@ -67,7 +67,7 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		errorCode, message := parseJsonDecodeError(err)
-		EncodeResponse[types.ErrorResponse](w, errorCode, types.ErrorResponse{Error: message})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, errorCode, types.ErrorResponse{Error: message})
 		if errorCode == http.StatusInternalServerError {
 			h.Logger.Error(r.Context(), "Server error when parsing json body. error: %v", "error", err.Error())
 		}
@@ -82,13 +82,13 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 
 		switch {
 		case errors.As(err, &validationError):
-			EncodeResponse[types.ErrorResponseList](w, http.StatusBadRequest, types.ErrorResponseList{Error: EncodeValidationError(validationError)})
+			EncodeResponse[types.ErrorResponseList](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponseList{Error: EncodeValidationError(validationError)})
 		case errors.As(err, &duplicateIdempotencyKeyError):
-			EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("%s header value has already been used", types.HeadersIdempotencyKey)})
+			EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("%s header value has already been used", types.HeadersIdempotencyKey)})
 		case errors.As(err, &duplicateEmailOrUsername):
-			EncodeResponse[types.ErrorResponse](w, http.StatusBadRequest, types.ErrorResponse{Error: err.Error()})
+			EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: err.Error()})
 		default:
-			EncodeResponse[types.ErrorResponse](w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+			EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
 			h.Logger.Error(r.Context(), err.Error())
 		}
 		return
@@ -102,9 +102,7 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: newUser.UpdatedAt,
 	}
 
-	if err = EncodeResponse[postUserResponse](w, http.StatusCreated, response); err != nil {
-		h.Logger.Error(r.Context(), err.Error())
-	}
+	EncodeResponse[postUserResponse](h.Logger, r.Context(), w, http.StatusCreated, response)
 	h.Logger.Info(r.Context(), "PostUser created user with id '%s'", "userId", newUser.Id, "responseStatusCode", 201)
 }
 

@@ -113,5 +113,5 @@ func (h *ApiHealthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	if len(errs) > 0 {
 		status = http.StatusInternalServerError
 	}
-	EncodeResponse[HealthCheckResponse](w, status, response)
+	EncodeResponse[HealthCheckResponse](h.Logger, r.Context(), w, status, response)
 }
