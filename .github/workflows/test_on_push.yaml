@@ -27,7 +27,8 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      # - name: Lint # use golangci-lint
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
 
       - name: Download Dependencies
         run: |
