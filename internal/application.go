@@ -103,26 +103,20 @@ func (a *App) Run() {
 	errChan := make(chan error, 1)
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		a.Logger.Info(ctx, "Attempting to start the server...")
 		a.Logger.Info(ctx, fmt.Sprintf("Starting server on port %s", a.Server.Addr))
 		a.Logger.Info(ctx, fmt.Sprintf("Server will be available on %s", a.baseUrl))
 		errChan <- a.Server.ListenAndServe()
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		workers.IdempotencyKeyCleanupWorker(ctx, a.Logger, a.Config.IdempotencyKeyCleanupWorker.IntervalSeconds, a.DbContext, a.Config.IdempotencyKeyCleanupWorker.ErrorsFatal)
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		workers.ShortUrlCleanupWorker(ctx, a.Logger, a.Config.ShortUrlCleanupWorker.IntervalSeconds, a.DbContext, a.Config.ShortUrlCleanupWorker.ErrorsFatal)
-	}()
+	})
 
 	select {
 	case err := <-errChan:
