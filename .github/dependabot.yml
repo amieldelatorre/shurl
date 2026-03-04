@@ -1,0 +1,42 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directories: 
+      - "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      go-all:
+        patterns:
+          - "*"
+      
+  - package-ecosystem: "docker"
+    directories:
+      - "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker-all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker-compose"
+    directories:
+      - "/"
+      - "/infra/docker/**"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker-compose-all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directories:
+      - "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions-all:
+        patterns:
+          - "*"
