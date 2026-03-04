@@ -10,5 +10,5 @@ CREATE TABLE IF NOT EXISTS short_urls (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE short_urls;
+DROP TABLE IF EXISTS short_urls;
 -- +goose StatementEnd

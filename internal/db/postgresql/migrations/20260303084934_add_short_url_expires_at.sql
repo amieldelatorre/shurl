@@ -9,5 +9,5 @@ CREATE INDEX IF NOT EXISTS idx_short_urls_expires_at ON short_urls (expires_at);
 -- +goose StatementBegin
 ALTER TABLE short_urls
 DROP COLUMN IF EXISTS expires_at;
-DROP INDEX idx_short_urls_expires_at;
+DROP INDEX IF EXISTS idx_short_urls_expires_at;
 -- +goose StatementEnd

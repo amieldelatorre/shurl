@@ -21,5 +21,5 @@ ALTER TABLE short_urls
 DROP COLUMN 
 IF EXISTS user_id;
 
-DROP TABLE shurl_users;
+DROP TABLE IF EXISTS shurl_users;
 -- +goose StatementEnd

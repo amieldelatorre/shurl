@@ -11,5 +11,5 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE idempotency_keys;
+DROP TABLE IF EXISTS idempotency_keys;
 -- +goose StatementEnd
