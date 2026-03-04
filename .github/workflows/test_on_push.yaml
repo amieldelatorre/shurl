@@ -33,6 +33,10 @@ jobs:
       - name: Download Dependencies
         run: |
           go mod download
+      
+      - name: Build with race checking
+        run: |
+          go build -race .
 
       - name: Run Tests
         run: |
