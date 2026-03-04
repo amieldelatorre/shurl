@@ -7,8 +7,10 @@ import (
 	"os"
 )
 
+type ContextKey string
+
 const (
-	RequestIdName = "RequestId"
+	RequestIdName ContextKey = "RequestId"
 )
 
 type CustomJsonLogger struct {

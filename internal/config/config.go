@@ -203,7 +203,7 @@ func LoadConfig(configFilePath string) (*Config, error) {
 
 	keyBlock, _ := pem.Decode([]byte(config.Server.Auth.JwtKey))
 	if keyBlock == nil {
-		return nil, errors.New("Could not parse ecdsa.PrivateKey")
+		return nil, errors.New("could not parse ecdsa private key")
 	}
 
 	key, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
@@ -214,7 +214,7 @@ func LoadConfig(configFilePath string) (*Config, error) {
 	var ok bool
 	config.Server.Auth.JwtEcdsaParsedKey, ok = key.(*ecdsa.PrivateKey)
 	if !ok {
-		return nil, errors.New("Could not parse ecdsa.PrivateKey")
+		return nil, errors.New("could not parse ecdsa private key")
 	}
 
 	err = config.Log.SlogLevel.UnmarshalText([]byte(config.Log.Level))

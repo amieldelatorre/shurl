@@ -28,6 +28,10 @@ func GetDatabaseContext(ctx context.Context, config config.Config, logger utils.
 	}
 
 	currentDbVersion, err := goose.GetDBVersion(dbMigrations.GetDb())
+	if err != nil {
+		logger.ErrorExit(ctx, err.Error())
+	}
+
 	logger.Info(ctx, "Current database version is: %v", "currentDbVersion", currentDbVersion)
 	if *config.Database.RunMigrations || forceRunMigrations {
 		logger.Info(ctx, "Running migrations")
