@@ -13,7 +13,7 @@ BEGIN
         -- passwords is password
         ('019cb76d-dada-73b5-81a7-6f132a876b2a', 'test4', 'test4@example.invalid', '$argon2id$v=19$m=262144,t=4,p=2$f5fyT93MmavHSCPOey27Vw$Hi0Z/349GHZvT+uU382wuvnzE+8QLyJV+9/k7EGNitA', NOW(), NOW()),
         -- passwords is password123
-        ('019cbcdb-aaf4-7680-a3f7-8acef63e0151', 'test5', 'test5@example.invalid', '$argon2id$v=19$m=262144,t=4,p=2$5QPTScCJ0BaXlJrbuMXxjw$NalLgOx1YcKu62xCcG3eBkgic2KF60K2kR3bXcL3PqE', '2026-03-05 07:17:18.708701+00', '2026-03-05 07:17:18.708701+00');
+        ('019cbcdb-aaf4-7680-a3f7-8acef63e0151', 'test5', 'test5@example.invalid', '$argon2id$v=19$m=262144,t=4,p=2$5QPTScCJ0BaXlJrbuMXxjw$NalLgOx1YcKu62xCcG3eBkgic2KF60K2kR3bXcL3PqE', NOW(), NOW());
 -- ---------------------------------------------------------------------------------------------------------
     -- There should be 603 rows 
     -- add expired idempotency keys ----------------------------------------------------------------------
