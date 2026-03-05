@@ -64,7 +64,7 @@ func TestPostUserTestCases(t *testing.T) {
 			ExpectedStatusCode:    http.StatusBadRequest,
 			Expected: handlers.PostUserResponse{
 				Errors: []string{
-					"Endpoint required header 'Content-Type' with value 'application/json'",
+					"Endpoint requires header 'Content-Type' with value 'application/json'",
 				},
 			},
 		},
