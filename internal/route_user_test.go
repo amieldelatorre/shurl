@@ -18,6 +18,7 @@ import (
 type PostUserTestCase struct {
 	Name                  string
 	Request               handlers.PostUserRequest
+	UseUuid               *uuid.UUID
 	SkipIdempotencyHeader bool
 	SkipJsonHeader        bool
 	ExpectedStatusCode    int
@@ -32,6 +33,7 @@ func TestPostUserTestCases(t *testing.T) {
 	happyPathUsername := "new1"
 	happyPathEmail := "new1@example.invalid"
 	now := time.Now()
+	usedUuid := uuid.MustParse("019cbb9b-b284-73dc-9d2b-42d5ef94a0da")
 
 	cases := []PostUserTestCase{
 		{
@@ -42,6 +44,24 @@ func TestPostUserTestCases(t *testing.T) {
 				Password:        "",
 				ConfirmPassword: "",
 			},
+			SkipIdempotencyHeader: true,
+			SkipJsonHeader:        false,
+			ExpectedStatusCode:    http.StatusBadRequest,
+			Expected: handlers.PostUserResponse{
+				Errors: []string{
+					"Missing uuidv7 idempotency key header 'X-Idempotency-Key'",
+				},
+			},
+		},
+		{
+			Name: "UsedIdempotencyKey",
+			Request: handlers.PostUserRequest{
+				Username:        "test1",
+				Email:           "test1@example.invalid",
+				Password:        "newpassword",
+				ConfirmPassword: "newpassword",
+			},
+			UseUuid:               &usedUuid,
 			SkipIdempotencyHeader: true,
 			SkipJsonHeader:        false,
 			ExpectedStatusCode:    http.StatusBadRequest,
