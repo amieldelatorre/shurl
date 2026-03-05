@@ -29,6 +29,7 @@ type CreateShortUrlResponse struct {
 	ExpiresAt      time.Time  `json:"expires_at"`
 	Url            string     `json:"url"`
 	UserId         *uuid.UUID `json:"user_id,omitempty"`
+	Errors         []string   `json:"errors,omitempty"`
 }
 
 type CreateShortUrl struct {

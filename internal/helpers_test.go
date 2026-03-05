@@ -165,13 +165,21 @@ func SetupDependencies(t *testing.T, ctx context.Context, enableCache bool) Depe
 	return deps
 }
 
-func CreateAccessToken(t *testing.T, config config.AuthConfig, hours int) string {
+func CreateAccessToken(t *testing.T, config config.AuthConfig, hours int, id *uuid.UUID) string {
 	now := time.Now()
 	start := now.Add(-24 * time.Hour)
 	expiresAt := now.Add(time.Duration(hours) * time.Hour)
+
+	var sub string
+	if id != nil {
+		sub = id.String()
+	} else {
+		sub = ""
+	}
+
 	claims := handlers.JwtClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   uuid.Nil.String(),
+			Subject:   sub,
 			Issuer:    config.JwtIssuer,
 			IssuedAt:  jwt.NewNumericDate(start),
 			NotBefore: jwt.NewNumericDate(start),
