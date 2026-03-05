@@ -177,7 +177,7 @@ func TestPostUserTestCases(t *testing.T) {
 			},
 		},
 		{
-			Name: "ValidationErrorsUsernameInvalidCharSpace",
+			Name: "ValidationErrorsUsernameInvalidChar",
 			Request: handlers.PostUserRequest{
 				Username:        "test1&",
 				Email:           "new1@example.invalid",
@@ -252,7 +252,7 @@ func TestPostUserTestCases(t *testing.T) {
 		t.Run(testCase.Name+"WithCache", func(t *testing.T) {
 			runPostUserTest(t, testCase, true)
 		})
-		t.Run(testCase.Name+"WithNoCache", func(t *testing.T) {
+		t.Run(testCase.Name+"NoCache", func(t *testing.T) {
 			runPostUserTest(t, testCase, false)
 		})
 	}
