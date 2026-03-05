@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/amieldelatorre/shurl/internal/handlers"
 	"github.com/amieldelatorre/shurl/internal/types"
@@ -202,5 +203,56 @@ func runLogin(t *testing.T, tc LoginTestCase, cacheEnabled bool) {
 		if loginResponse.AccessToken == nil {
 			t.Errorf("access token is nil")
 		}
+	}
+}
+
+type LogoutTestCase struct {
+	Name               string
+	ExpectedStatusCode int
+	ExpectedCookie     *http.Cookie
+}
+
+func TestLogout(t *testing.T) {
+	ctx := context.Background()
+	deps := SetupDependencies(t, ctx, false)
+	cases := []LogoutTestCase{
+		{
+			Name:               "HappyPath",
+			ExpectedStatusCode: http.StatusOK,
+			ExpectedCookie: &http.Cookie{
+				Name:       handlers.CookieAccessTokenName,
+				Value:      "",
+				Path:       "/",
+				MaxAge:     -1,
+				Expires:    time.Unix(0, 0),
+				RawExpires: "Thu, 01 Jan 1970 00:00:00 GMT",
+				HttpOnly:   true,
+				Secure:     deps.App.Config.Server.HttpsEnabled,
+				SameSite:   http.SameSiteStrictMode,
+				Raw:        "access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Strict",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			res, err := http.Post(deps.TestServer.URL+
+				"/api/v1/auth/logout", "application/json", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			resCookies := res.Cookies()
+			if len(resCookies) != 1 {
+				t.Error("did not get the expected 1 cookie")
+				t.FailNow()
+			}
+
+			c := resCookies[0]
+
+			if diff := cmp.Diff(tc.ExpectedCookie, c); diff != "" {
+				t.Errorf("%s", diff)
+			}
+		})
 	}
 }
