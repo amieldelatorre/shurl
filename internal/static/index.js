@@ -94,7 +94,7 @@ async function onSubmit(event) {
 
     // Chose not to handle timeout explicitly, it should be retryable anyway and means something is wrong with the server.
     if (result.isJson && result.json)
-        NOTIFICATION_CONTAINER.prepend(createErrorBox([result.json.error]));
+        NOTIFICATION_CONTAINER.prepend(createErrorBox(result.json.errors));
     else
         NOTIFICATION_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
 

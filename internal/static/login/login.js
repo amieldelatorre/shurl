@@ -42,7 +42,7 @@ async function onSubmit(event) {
 
     // Chose not to handle timeout explicitly, it should be retryable anyway and means something is wrong with the server.
     if (result.isJson && result.json)
-        NOTIFICATION_CONTAINER.prepend(createErrorBox([result.json.error]));
+        NOTIFICATION_CONTAINER.prepend(createErrorBox(result.json.errors));
     else
         NOTIFICATION_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
 
@@ -69,7 +69,7 @@ async function checkLoggedin() {
 
         // Chose not to handle timeout explicitly, it should be retryable anyway and means something is wrong with the server.
         if (result.isJson && result.json)
-            NOTIFICATION_CONTAINER.prepend(createErrorBox(["Error trying to invalidate expired token", result.json.error, "Please try logging in again to refresh. If error persists, please try again later"]));
+            NOTIFICATION_CONTAINER.prepend(createErrorBox(["Error trying to invalidate expired token", ...result.json.errors, "Please try logging in again to refresh. If error persists, please try again later"]));
         else
             NOTIFICATION_CONTAINER.prepend(createErrorBox(["Error trying to invalidate expired token", "Please try logging in again to refresh. If error persists, please try again later"]));
 
