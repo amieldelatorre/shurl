@@ -90,7 +90,7 @@ func init() {
 		panic(err)
 	}
 	createUserCmd.Flags().StringVar(&createUserCmdUsernameInput, "username", "", "Username of the user to be created")
-	err = createUserCmd.MarkFlagRequired("password")
+	err = createUserCmd.MarkFlagRequired("username")
 	if err != nil {
 		panic(err)
 	}

@@ -259,7 +259,7 @@ func ExecWithRetry[T any](ctx context.Context, logger utils.CustomJsonLogger, db
 			// use a different context here so that even if it does time out it still runs the rollback
 			defer func() {
 				err := tx.Rollback(context.Background())
-				if err != nil {
+				if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
 					logger.Error(ctx, "failed to rollback", "error", err.Error())
 				}
 			}()

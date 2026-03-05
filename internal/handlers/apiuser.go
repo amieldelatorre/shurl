@@ -44,12 +44,13 @@ type PostUserRequest struct {
 	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=Password"`
 }
 
-type postUserResponse struct {
-	Id        uuid.UUID `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+type PostUserResponse struct {
+	Id        *uuid.UUID `json:"id,omitempty"`
+	Username  *string    `json:"username,omitempty"`
+	Email     *string    `json:"email,omitempty"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	Errors    []string   `json:"errors,omitempty"`
 }
 
 func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +60,7 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 	idempotencyKeyString := r.Header.Get(types.HeadersIdempotencyKey)
 	idempotencyKey, err := uuid.Parse(idempotencyKeyString)
 	if err != nil {
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: "idempotency key provided is not a valid UUID"})
+		EncodeResponse[PostUserResponse](h.Logger, r.Context(), w, http.StatusBadRequest, PostUserResponse{Errors: []string{"idempotency key provided is not a valid UUID"}})
 		return
 	}
 
@@ -67,7 +68,7 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		errorCode, message := parseJsonDecodeError(err)
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, errorCode, types.ErrorResponse{Error: message})
+		EncodeResponse[PostUserResponse](h.Logger, r.Context(), w, http.StatusBadRequest, PostUserResponse{Errors: []string{message}})
 		if errorCode == http.StatusInternalServerError {
 			h.Logger.Error(r.Context(), "Server error when parsing json body. error: %v", "error", err.Error())
 		}
@@ -82,27 +83,27 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 
 		switch {
 		case errors.As(err, &validationError):
-			EncodeResponse[types.ErrorResponseList](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponseList{Error: EncodeValidationError(validationError)})
+			EncodeResponse[PostUserResponse](h.Logger, r.Context(), w, http.StatusBadRequest, PostUserResponse{Errors: EncodeValidationError(validationError)})
 		case errors.As(err, &duplicateIdempotencyKeyError):
-			EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("%s header value has already been used", types.HeadersIdempotencyKey)})
+			EncodeResponse[PostUserResponse](h.Logger, r.Context(), w, http.StatusBadRequest, PostUserResponse{Errors: []string{fmt.Sprintf("%s header value has already been used", types.HeadersIdempotencyKey)}})
 		case errors.As(err, &duplicateEmailOrUsername):
-			EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: err.Error()})
+			EncodeResponse[PostUserResponse](h.Logger, r.Context(), w, http.StatusBadRequest, PostUserResponse{Errors: []string{err.Error()}})
 		default:
-			EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+			EncodeResponse[PostUserResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, PostUserResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
 			h.Logger.Error(r.Context(), err.Error())
 		}
 		return
 	}
 
-	response := postUserResponse{
-		Id:        newUser.Id,
-		Username:  newUser.Username,
-		Email:     newUser.Email,
-		CreatedAt: newUser.CreatedAt,
-		UpdatedAt: newUser.UpdatedAt,
+	response := PostUserResponse{
+		Id:        &newUser.Id,
+		Username:  &newUser.Username,
+		Email:     &newUser.Email,
+		CreatedAt: &newUser.CreatedAt,
+		UpdatedAt: &newUser.UpdatedAt,
 	}
 
-	EncodeResponse[postUserResponse](h.Logger, r.Context(), w, http.StatusCreated, response)
+	EncodeResponse[PostUserResponse](h.Logger, r.Context(), w, http.StatusCreated, response)
 	h.Logger.Info(r.Context(), "PostUser created user with id '%s'", "userId", newUser.Id, "responseStatusCode", 201)
 }
 

@@ -5,7 +5,7 @@ type ErrorResponse struct {
 }
 
 type ErrorResponseList struct {
-	Error []string `json:"error"`
+	Errors []string `json:"errors"`
 }
 
 type DuplicateIdempotencyKeyError struct {

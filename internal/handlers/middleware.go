@@ -67,7 +67,18 @@ func (m *Middleware) IdempotencyKeyRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idempotencyKey := r.Header.Get(types.HeadersIdempotencyKey)
 		if strings.TrimSpace(idempotencyKey) == "" {
-			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Error: fmt.Sprintf("Missing uuidv7 idempotency key header '%s'", types.HeadersIdempotencyKey)})
+			EncodeResponse[types.ErrorResponseList](m.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponseList{Errors: []string{fmt.Sprintf("Missing uuidv7 idempotency key header '%s'", types.HeadersIdempotencyKey)}})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (m *Middleware) JsonRequired(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		contentType := r.Header.Get(types.HeadersContentTypeKey)
+		if strings.TrimSpace(contentType) != types.HeadersContentTypeJsonValue {
+			EncodeResponse[types.ErrorResponseList](m.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponseList{Errors: []string{fmt.Sprintf("Endpoint required header '%s' with value '%s'", types.HeadersContentTypeKey, types.HeadersContentTypeJsonValue)}})
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -76,12 +87,12 @@ func (m *Middleware) IdempotencyKeyRequired(next http.Handler) http.Handler {
 
 func (m *Middleware) AllowRegistration(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if m.Config.Server.AllowRegistration && m.Config.Server.AllowLogin {
+		if m.Config.Server.AllowRegistration {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusForbidden, types.ErrorResponse{Error: "Signup has been disabled by the administrator"})
+		EncodeResponse[types.ErrorResponseList](m.Logger, r.Context(), w, http.StatusForbidden, types.ErrorResponseList{Errors: []string{"Signup has been disabled by the administrator"}})
 	})
 }
 

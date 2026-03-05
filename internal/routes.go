@@ -26,10 +26,10 @@ func RegisterRoutes(
 	templateHandler handlers.TemplateHandler,
 ) {
 	redirection := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(redirectionHandler.Redirect)))
-	postShortUrl := m.RecoverPanic(m.AddRequestId(m.LoginRequiredOrAllowAnonymous(m.IdempotencyKeyRequired(http.HandlerFunc(apiShortUrlHandler.PostShortUrl)))))
-	postUser := m.RecoverPanic(m.AddRequestId(m.AllowRegistration(m.IdempotencyKeyRequired(http.HandlerFunc(apiUserHandler.PostUser)))))
+	postShortUrl := m.RecoverPanic(m.AddRequestId(m.LoginRequiredOrAllowAnonymous(m.JsonRequired(m.IdempotencyKeyRequired(http.HandlerFunc(apiShortUrlHandler.PostShortUrl))))))
+	postUser := m.RecoverPanic(m.AddRequestId(m.AllowRegistration(m.JsonRequired(m.IdempotencyKeyRequired(http.HandlerFunc(apiUserHandler.PostUser))))))
 	getIndexJs := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(templateHandler.GetIndexJs)))
-	login := m.RecoverPanic(m.AddRequestId(m.AllowLogin(http.HandlerFunc(authHandler.Login))))
+	login := m.RecoverPanic(m.AddRequestId(m.JsonRequired(m.AllowLogin(http.HandlerFunc(authHandler.Login)))))
 	logout := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(authHandler.Logout)))
 	validate := m.RecoverPanic(m.AddRequestId(m.LoginRequired(http.HandlerFunc(authHandler.Validate))))
 	healthCheck := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(apiHealthHandler.HealthCheck)))

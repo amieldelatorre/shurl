@@ -77,7 +77,7 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var vError validator.ValidationErrors
 		if errors.As(err, &vError) {
-			EncodeResponse[types.ErrorResponseList](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponseList{Error: EncodeValidationError(vError)})
+			EncodeResponse[types.ErrorResponseList](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponseList{Errors: EncodeValidationError(vError)})
 			return
 		}
 
