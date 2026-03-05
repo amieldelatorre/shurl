@@ -107,6 +107,7 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("short_url_cleanup_worker.errors_fatal", true)
 
 	v.SetDefault("database.run_migrations", true)
+	v.SetDefault("database.driver", "postgres")
 	v.SetDefault("database.port", "5432")
 
 	v.SetDefault("cache.enabled", false)
