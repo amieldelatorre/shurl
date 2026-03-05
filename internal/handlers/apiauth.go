@@ -65,7 +65,7 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		errorCode, message := parseJsonDecodeError(err)
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, errorCode, types.ErrorResponse{Error: message})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, errorCode, types.ErrorResponse{Errors: []string{message}})
 		if errorCode == http.StatusInternalServerError {
 			h.Logger.Error(r.Context(), "Server error when parsing json body. error: %v", "error", err.Error())
 		}
@@ -77,11 +77,11 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var vError validator.ValidationErrors
 		if errors.As(err, &vError) {
-			EncodeResponse[types.ErrorResponseList](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponseList{Errors: EncodeValidationError(vError)})
+			EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Errors: EncodeValidationError(vError)})
 			return
 		}
 
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
@@ -89,7 +89,7 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// Get user
 	user, err := h.Db.GetUserByEmail(r.Context(), req.Email)
 	if err != nil {
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
@@ -98,7 +98,7 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		_, _ = argon2id.ComparePasswordAndHash("HERE_FOR_PREVENTING_USER_ENUMERATION", h.dummyPasswordHash)
 		// disregard error response because we're going to send an unauthorized anyway
 
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusUnauthorized, types.ErrorResponse{Error: invalidCredentialsMessage})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusUnauthorized, types.ErrorResponse{Errors: []string{invalidCredentialsMessage}})
 		// TODO: Add IP address
 		h.Logger.Warn(r.Context(), "Failed login attempt")
 		return
@@ -106,13 +106,13 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	passwordMatch, err := argon2id.ComparePasswordAndHash(req.Password, user.PasswordHash)
 	if err != nil {
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
 
 	if !passwordMatch {
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusUnauthorized, types.ErrorResponse{Error: invalidCredentialsMessage})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusUnauthorized, types.ErrorResponse{Errors: []string{invalidCredentialsMessage}})
 		// TODO: Add IP address
 		h.Logger.Warn(r.Context(), "failed login attempt")
 		return
@@ -133,7 +133,7 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodES512, claims)
 	signedToken, err := token.SignedString(h.Config.Server.Auth.JwtEcdsaParsedKey)
 	if err != nil {
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Error: "Something is wrong with the server. Please try again later"})
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}

@@ -1,10 +1,6 @@
 package types
 
 type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
-type ErrorResponseList struct {
 	Errors []string `json:"errors"`
 }
 
