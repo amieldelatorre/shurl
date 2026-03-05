@@ -78,7 +78,7 @@ func (m *Middleware) JsonRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get(types.HeadersContentTypeKey)
 		if strings.TrimSpace(contentType) != types.HeadersContentTypeJsonValue {
-			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Errors: []string{fmt.Sprintf("Endpoint required header '%s' with value '%s'", types.HeadersContentTypeKey, types.HeadersContentTypeJsonValue)}})
+			EncodeResponse[types.ErrorResponse](m.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Errors: []string{fmt.Sprintf("Endpoint requires header '%s' with value '%s'", types.HeadersContentTypeKey, types.HeadersContentTypeJsonValue)}})
 			return
 		}
 		next.ServeHTTP(w, r)

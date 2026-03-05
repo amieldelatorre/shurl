@@ -1,14 +1,19 @@
 DO $$
 BEGIN
 -- ---------------------------------------------------------------------------------------------------------
--- There should be 4 rows
+-- There should be 5 rows
 -- add users
     INSERT INTO public.shurl_users VALUES 
-                                                                                -- passwords are all password
+        -- passwords is password
         ('019cb76d-23a3-7d94-9187-a702cbe03b3f', 'test1', 'test1@example.invalid', '$argon2id$v=19$m=262144,t=4,p=2$zCeK/qqV7BzHmKyAKKnE1g$mZ3YJMYRn/a+evEw6L9btgKMlrYxZUn+DhXt0DBoBWU', NOW(), NOW()),
+        -- passwords is password
         ('019cb76d-645d-70a4-8c52-68dfa99cdfc6', 'test2', 'test2@example.invalid', '$argon2id$v=19$m=262144,t=4,p=2$Fe5VjdIgGxO6tran6jmeZw$zBwnwTOuntNWwgMzJvKZolPGkAsLBmAAaNrXc7BIBP8', NOW(), NOW()),
+        -- passwords is password
         ('019cb76d-9c19-726d-ad64-7bc070a95940', 'test3', 'test3@example.invalid', '$argon2id$v=19$m=262144,t=4,p=2$pnBJNPrM3LSQiuEtycjukA$iHBkNO7q49pOHooynpRo5SagU0JTgafYAjcqr1SG7/8', NOW(), NOW()),
-        ('019cb76d-dada-73b5-81a7-6f132a876b2a', 'test4', 'test4@example.invalid', '$argon2id$v=19$m=262144,t=4,p=2$f5fyT93MmavHSCPOey27Vw$Hi0Z/349GHZvT+uU382wuvnzE+8QLyJV+9/k7EGNitA', NOW(), NOW());
+        -- passwords is password
+        ('019cb76d-dada-73b5-81a7-6f132a876b2a', 'test4', 'test4@example.invalid', '$argon2id$v=19$m=262144,t=4,p=2$f5fyT93MmavHSCPOey27Vw$Hi0Z/349GHZvT+uU382wuvnzE+8QLyJV+9/k7EGNitA', NOW(), NOW()),
+        -- passwords is password123
+        ('019cbcdb-aaf4-7680-a3f7-8acef63e0151', 'test5', 'test5@example.invalid', '$argon2id$v=19$m=262144,t=4,p=2$5QPTScCJ0BaXlJrbuMXxjw$NalLgOx1YcKu62xCcG3eBkgic2KF60K2kR3bXcL3PqE', '2026-03-05 07:17:18.708701+00', '2026-03-05 07:17:18.708701+00');
 -- ---------------------------------------------------------------------------------------------------------
     -- There should be 603 rows 
     -- add expired idempotency keys ----------------------------------------------------------------------
