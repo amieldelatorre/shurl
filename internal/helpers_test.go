@@ -6,7 +6,12 @@ import (
 	"io"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/amieldelatorre/shurl/internal/config"
+	"github.com/amieldelatorre/shurl/internal/handlers"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/testcontainers/testcontainers-go"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	tcvalkey "github.com/testcontainers/testcontainers-go/modules/valkey"
@@ -158,4 +163,27 @@ func SetupDependencies(t *testing.T, ctx context.Context, enableCache bool) Depe
 	}
 
 	return deps
+}
+
+func CreateAccessToken(t *testing.T, config config.AuthConfig, hours int) string {
+	now := time.Now()
+	start := now.Add(-24 * time.Hour)
+	expiresAt := now.Add(time.Duration(hours) * time.Hour)
+	claims := handlers.JwtClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   uuid.Nil.String(),
+			Issuer:    config.JwtIssuer,
+			IssuedAt:  jwt.NewNumericDate(start),
+			NotBefore: jwt.NewNumericDate(start),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodES512, claims)
+	signedToken, err := token.SignedString(config.JwtEcdsaParsedKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return signedToken
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"testing"
@@ -252,6 +253,100 @@ func TestLogout(t *testing.T) {
 
 			if diff := cmp.Diff(tc.ExpectedCookie, c); diff != "" {
 				t.Errorf("%s", diff)
+			}
+		})
+	}
+}
+
+type ValidateTestCases struct {
+	Name               string
+	UseCookie          bool
+	UseHeader          bool
+	AccessToken        string
+	ExpectedStatusCode int
+}
+
+func TestValidate(t *testing.T) {
+	ctx := context.Background()
+	deps := SetupDependencies(t, ctx, false)
+	cases := []ValidateTestCases{
+		{
+			Name:               "InvalidHeader",
+			UseCookie:          false,
+			UseHeader:          true,
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, -12),
+			ExpectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			Name:               "InvalidCookie",
+			UseCookie:          true,
+			UseHeader:          false,
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, -12),
+			ExpectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			Name:               "None",
+			UseCookie:          false,
+			UseHeader:          false,
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, -12),
+			ExpectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			Name:               "ValidHeader",
+			UseCookie:          false,
+			UseHeader:          true,
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12),
+			ExpectedStatusCode: http.StatusOK,
+		},
+		{
+			Name:               "ValidCookie",
+			UseCookie:          true,
+			UseHeader:          false,
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12),
+			ExpectedStatusCode: http.StatusOK,
+		},
+		{
+			Name:               "ValidBoth",
+			UseCookie:          true,
+			UseHeader:          true,
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12),
+			ExpectedStatusCode: http.StatusOK,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, deps.TestServer.URL+"/api/v1/auth/validate", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tc.UseHeader {
+				req.Header.Add(handlers.HeaderAuthorization, fmt.Sprintf("Bearer %s", tc.AccessToken))
+			}
+
+			if tc.UseCookie {
+				cookie := &http.Cookie{
+					Name:     handlers.CookieAccessTokenName,
+					Value:    tc.AccessToken,
+					Path:     "/",
+					MaxAge:   12 * 60 * 60, // x * minutes in an hour * seconds in a minute
+					Expires:  time.Now().Add(12 * time.Hour),
+					HttpOnly: true,
+					Secure:   deps.App.Config.Server.HttpsEnabled,
+					SameSite: http.SameSiteStrictMode,
+				}
+
+				req.AddCookie(cookie)
+			}
+
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if res.StatusCode != tc.ExpectedStatusCode {
+				t.Errorf("expected status %d got %d", tc.ExpectedStatusCode, res.StatusCode)
 			}
 		})
 	}
