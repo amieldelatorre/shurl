@@ -1,0 +1,25 @@
+server:
+  domain: localhost
+  allow_login: true
+  allow_registration: true
+  allow_anonymous: false
+  auth:
+    jwt_key: |
+      -----BEGIN PRIVATE KEY-----
+      MIHuAgEAMBAGByqGSM49AgEGBSuBBAAjBIHWMIHTAgEBBEIBxqUZyjGYLoZ12MOt
+      E7LMqwi4jlmni3JE6rEFHRYgMAxHpBZIzA1DFMaJUSvhHoG7IDEUuh4dYdJKcORT
+      crZz8nOhgYkDgYYABAGfTZFTug8rVyDng2JCCENWr9lnXoSETRk5p+3qi9Y7HAMM
+      JpBr7R1JRHprFqI08godS7mRE/ZuGnwNs0BdCnrxGgBlcSbEelp0GPLdkd+MGhsd
+      +5hecbTP6p0c9AeaZxa+TB0WnRg4d5Kojl5dgNmV9MUmUiItFA4jdUiHoZj3W6AC
+      oQ==
+      -----END PRIVATE KEY-----
+
+
+database:
+  run_migrations: true
+  driver: postgres
+  host: changemeincode
+  port: changemeincode
+  name: shurl
+  username: shurl
+  password: password

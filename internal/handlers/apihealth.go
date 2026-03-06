@@ -16,12 +16,12 @@ var (
 
 type ApiHealthHandler struct {
 	Logger utils.CustomJsonLogger
-	Config config.Config
+	Config *config.Config
 	Db     db.DbContext
 	Cache  db.DbContext
 }
 
-func NewApiHealthHandler(logger utils.CustomJsonLogger, config config.Config, dbContext db.DbContext, cache db.DbContext) ApiHealthHandler {
+func NewApiHealthHandler(logger utils.CustomJsonLogger, config *config.Config, dbContext db.DbContext, cache db.DbContext) ApiHealthHandler {
 	return ApiHealthHandler{
 		Logger: logger,
 		Config: config,

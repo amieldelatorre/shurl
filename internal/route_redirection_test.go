@@ -14,6 +14,7 @@ type RedirectionTestCase struct {
 }
 
 func TestRedirection(t *testing.T) {
+	t.Parallel()
 	cases := []RedirectionTestCase{
 		{
 			Name:               "NotFound",
@@ -33,9 +34,11 @@ func TestRedirection(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name+"WithCache", func(t *testing.T) {
+			t.Parallel()
 			runTestRedirect(t, tc, true)
 		})
 		t.Run(tc.Name+"NoCache", func(t *testing.T) {
+			t.Parallel()
 			runTestRedirect(t, tc, false)
 		})
 	}
@@ -44,6 +47,22 @@ func TestRedirection(t *testing.T) {
 func runTestRedirect(t *testing.T, tc RedirectionTestCase, cacheEnabled bool) {
 	ctx := context.Background()
 	deps := SetupDependencies(t, ctx, cacheEnabled)
+	defer func() {
+		if err := deps.App.Server.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := deps.Db.Container.Terminate(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		if cacheEnabled {
+			if err := deps.Cache.Container.Terminate(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}()
+
 	req, err := http.NewRequest(http.MethodGet, deps.TestServer.URL+"/"+tc.slug, nil)
 	if err != nil {
 		t.Fatal(err)

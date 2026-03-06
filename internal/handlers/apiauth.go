@@ -31,12 +31,12 @@ const (
 
 type ApiAuthHandler struct {
 	Logger            utils.CustomJsonLogger
-	Config            config.Config
+	Config            *config.Config
 	Db                db.DbContext
 	dummyPasswordHash string
 }
 
-func NewApiAuthHandler(logger utils.CustomJsonLogger, config config.Config, dbContext db.DbContext) (ApiAuthHandler, error) {
+func NewApiAuthHandler(logger utils.CustomJsonLogger, config *config.Config, dbContext db.DbContext) (ApiAuthHandler, error) {
 	dummyPasswordHash, err := argon2id.CreateHash(dummyPassword, argon2idParams)
 	if err != nil {
 		return ApiAuthHandler{}, err
@@ -72,7 +72,13 @@ func (h *ApiAuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validate := validator.New()
+	validate, err := utils.GetValidator()
+	if err != nil {
+		EncodeResponse[LoginResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, LoginResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
+		h.Logger.Error(r.Context(), err.Error())
+		return
+	}
+
 	err = validate.Struct(req)
 	if err != nil {
 		var vError validator.ValidationErrors

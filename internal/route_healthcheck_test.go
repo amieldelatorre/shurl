@@ -19,6 +19,7 @@ type GetHealthCheckCase struct {
 }
 
 func TestHealthCheck(t *testing.T) {
+	t.Parallel()
 	cacheOk := true
 	cacheNOk := false
 	cases := []GetHealthCheckCase{

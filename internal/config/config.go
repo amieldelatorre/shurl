@@ -12,7 +12,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/go-playground/validator/v10"
+	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/spf13/viper"
 )
 
@@ -142,12 +142,6 @@ func TrimConfigs(config Config) Config {
 	return config
 }
 
-func validateLogLevel(field validator.FieldLevel) bool {
-	var l slog.Level
-	err := l.UnmarshalText([]byte(field.Field().String()))
-	return err == nil
-}
-
 func LoadConfig(configFilePath string) (*Config, error) {
 	v := viper.NewWithOptions(viper.ExperimentalBindStruct())
 	SetDefaults(v)
@@ -191,8 +185,7 @@ func LoadConfig(configFilePath string) (*Config, error) {
 	}
 	config = TrimConfigs(config)
 
-	validate := validator.New()
-	err = validate.RegisterValidation("loglevelvalidator", validateLogLevel)
+	validate, err := utils.GetValidator()
 	if err != nil {
 		return nil, err
 	}

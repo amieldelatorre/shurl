@@ -14,6 +14,7 @@ import (
 	"github.com/amieldelatorre/shurl/internal/db"
 	"github.com/amieldelatorre/shurl/internal/types"
 	"github.com/amieldelatorre/shurl/internal/utils"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
@@ -28,7 +29,7 @@ func NewApiShortUrlHandler(logger utils.CustomJsonLogger, dbcontext db.DbContext
 }
 
 type PostShortUrlRequest struct {
-	DestinationUrl string `json:"destination_url"`
+	DestinationUrl string `json:"destination_url" validate:"required,url"`
 }
 
 func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
@@ -60,10 +61,27 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 	}
 
 	req.DestinationUrl = strings.TrimSpace(req.DestinationUrl)
-	if req.DestinationUrl == "" {
-		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Errors: []string{"`destination_url` cannot be null or empty"}})
+	validate, err := utils.GetValidator()
+	if err != nil {
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
+		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
+	var validationError validator.ValidationErrors
+	err = validate.Struct(&req)
+	if err != nil {
+		if errors.As(err, &validationError) {
+			EncodeResponse[types.CreateShortUrlResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.CreateShortUrlResponse{Errors: EncodeValidationError(validationError)})
+			return
+		}
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
+		h.Logger.Error(r.Context(), err.Error())
+		return
+	}
+	// if req.DestinationUrl == "" {
+	// 	EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Errors: []string{"`destination_url` cannot be null or empty"}})
+	// 	return
+	// }
 
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -105,11 +123,11 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 	}
 
 	response := types.CreateShortUrlResponse{
-		Id:             shortUrl.Id,
-		DestinationUrl: shortUrl.DestinationUrl,
-		Slug:           shortUrl.Slug,
-		CreatedAt:      shortUrl.CreatedAt,
-		ExpiresAt:      shortUrl.ExpiresAt,
+		Id:             &shortUrl.Id,
+		DestinationUrl: &shortUrl.DestinationUrl,
+		Slug:           &shortUrl.Slug,
+		CreatedAt:      &shortUrl.CreatedAt,
+		ExpiresAt:      &shortUrl.ExpiresAt,
 		Url:            createShortUrl(h.BaseUrl, shortUrl.Slug),
 		UserId:         shortUrl.UserId,
 	}

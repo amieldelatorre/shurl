@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,15 +28,7 @@ type App struct {
 	baseUrl      string
 }
 
-func NewApp(configFilePath string) App {
-	tempLogger := utils.NewCustomJsonLogger(os.Stdout, slog.LevelDebug)
-	ctx := context.Background()
-
-	config, err := config.LoadConfig(configFilePath)
-	if err != nil {
-		tempLogger.ErrorExit(ctx, err.Error())
-	}
-
+func NewApp(ctx context.Context, config *config.Config) App {
 	logger := utils.NewCustomJsonLogger(os.Stdout, config.Log.SlogLevel)
 
 	if config.Server.HttpsEnabled {
@@ -56,17 +47,17 @@ func NewApp(configFilePath string) App {
 
 	mux := http.NewServeMux()
 
-	middleware := handlers.NewMiddleware(logger, *config)
+	middleware := handlers.NewMiddleware(logger, config)
 	apiShortUrlHandler := handlers.NewApiShortUrlHandler(logger, dbContext, baseUrl)
 	apiUserHandler := handlers.NewApiUserHandler(logger, dbContext)
-	apiAuthHandler, err := handlers.NewApiAuthHandler(logger, *config, dbContext)
-	apiHealthHandler := handlers.NewApiHealthHandler(logger, *config, actualDbContext, cacheContext)
+	apiAuthHandler, err := handlers.NewApiAuthHandler(logger, config, dbContext)
+	apiHealthHandler := handlers.NewApiHealthHandler(logger, config, actualDbContext, cacheContext)
 	if err != nil {
 		logger.ErrorExit(ctx, err.Error())
 	}
 
 	redirectionHandler := handlers.NewRedirectionHandler(logger, dbContext)
-	templateHandler := handlers.NewTemplateHandler(logger, baseUrl, *config)
+	templateHandler := handlers.NewTemplateHandler(logger, baseUrl, config)
 
 	RegisterRoutes(logger, ctx, mux, middleware, apiShortUrlHandler, apiUserHandler, apiAuthHandler, apiHealthHandler, redirectionHandler, templateHandler)
 

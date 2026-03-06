@@ -28,10 +28,10 @@ var (
 
 type Middleware struct {
 	Logger utils.CustomJsonLogger
-	Config config.Config
+	Config *config.Config
 }
 
-func NewMiddleware(logger utils.CustomJsonLogger, config config.Config) Middleware {
+func NewMiddleware(logger utils.CustomJsonLogger, config *config.Config) Middleware {
 	return Middleware{Logger: logger, Config: config}
 }
 

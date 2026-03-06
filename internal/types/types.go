@@ -22,12 +22,12 @@ type ShortUrl struct {
 }
 
 type CreateShortUrlResponse struct {
-	Id             uuid.UUID  `json:"id"`
-	DestinationUrl string     `json:"destination_url"`
-	Slug           string     `json:"slug"`
-	CreatedAt      time.Time  `json:"created_at"`
-	ExpiresAt      time.Time  `json:"expires_at"`
-	Url            string     `json:"url"`
+	Id             *uuid.UUID `json:"id,omitempty"`
+	DestinationUrl *string    `json:"destination_url,omitempty"`
+	Slug           *string    `json:"slug,omitempty"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
+	ExpiresAt      *time.Time `json:"expires_at,omitempty"`
+	Url            string     `json:"url,omitempty"`
 	UserId         *uuid.UUID `json:"user_id,omitempty"`
 	Errors         []string   `json:"errors,omitempty"`
 }

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/amieldelatorre/shurl/internal"
+	"github.com/amieldelatorre/shurl/internal/config"
 	"github.com/amieldelatorre/shurl/internal/handlers"
 	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/google/uuid"
@@ -60,7 +61,12 @@ var createUserCmd = &cobra.Command{
 		}
 
 		configFilePath = strings.TrimSpace(configFilePath)
-		app := internal.NewApp(configFilePath)
+		config, err := config.LoadConfig(configFilePath)
+		if err != nil {
+			tempLogger.ErrorExit(ctx, err.Error())
+		}
+
+		app := internal.NewApp(ctx, config)
 
 		req := handlers.PostUserRequest{
 			Username:        createUserCmdUsernameInput,

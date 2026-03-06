@@ -17,11 +17,11 @@ var templates = template.Must(template.ParseFS(templateFS, "templates/*"))
 
 type TemplateHandler struct {
 	Logger  utils.CustomJsonLogger
-	Config  config.Config
+	Config  *config.Config
 	BaseUrl string
 }
 
-func NewTemplateHandler(logger utils.CustomJsonLogger, baseUrl string, config config.Config) TemplateHandler {
+func NewTemplateHandler(logger utils.CustomJsonLogger, baseUrl string, config *config.Config) TemplateHandler {
 	return TemplateHandler{Logger: logger, BaseUrl: baseUrl, Config: config}
 }
 

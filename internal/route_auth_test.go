@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/amieldelatorre/shurl/internal/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/uuid"
 )
 
 type LoginTestCase struct {
@@ -26,6 +26,7 @@ type LoginTestCase struct {
 }
 
 func TestLogin(t *testing.T) {
+	t.Parallel()
 	cases := []LoginTestCase{
 		{
 			Name: "LoginNotAllowed",
@@ -148,9 +149,11 @@ func TestLogin(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name+"WithCache", func(t *testing.T) {
+			t.Parallel()
 			runLogin(t, tc, true)
 		})
 		t.Run(tc.Name+"NoCache", func(t *testing.T) {
+			t.Parallel()
 			runLogin(t, tc, false)
 		})
 	}
@@ -158,8 +161,23 @@ func TestLogin(t *testing.T) {
 
 func runLogin(t *testing.T, tc LoginTestCase, cacheEnabled bool) {
 	ctx := context.Background()
-	t.Setenv("SERVER_ALLOW_LOGIN", strconv.FormatBool(tc.AllowLogin))
 	deps := SetupDependencies(t, ctx, cacheEnabled)
+	deps.App.Config.Server.AllowLogin = tc.AllowLogin
+	defer func() {
+		if err := deps.App.Server.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := deps.Db.Container.Terminate(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		if cacheEnabled {
+			if err := deps.Cache.Container.Terminate(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}()
 
 	rbody, err := json.Marshal(tc.Request)
 	if err != nil {
@@ -214,8 +232,19 @@ type LogoutTestCase struct {
 }
 
 func TestLogout(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	deps := SetupDependencies(t, ctx, false)
+	defer func() {
+		if err := deps.App.Server.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := deps.Db.Container.Terminate(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
 	cases := []LogoutTestCase{
 		{
 			Name:               "HappyPath",
@@ -267,50 +296,68 @@ type ValidateTestCases struct {
 }
 
 func TestValidate(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	deps := SetupDependencies(t, ctx, false)
+	defer func() {
+		if err := deps.App.Server.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := deps.Db.Container.Terminate(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
 	cases := []ValidateTestCases{
 		{
 			Name:               "InvalidHeader",
 			UseCookie:          false,
 			UseHeader:          true,
-			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, -12, nil),
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, -12, nil, true),
 			ExpectedStatusCode: http.StatusUnauthorized,
 		},
 		{
 			Name:               "InvalidCookie",
 			UseCookie:          true,
 			UseHeader:          false,
-			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, -12, nil),
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, -12, nil, true),
 			ExpectedStatusCode: http.StatusUnauthorized,
 		},
 		{
 			Name:               "None",
 			UseCookie:          false,
 			UseHeader:          false,
-			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, -12, nil),
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, -12, nil, true),
 			ExpectedStatusCode: http.StatusUnauthorized,
 		},
 		{
 			Name:               "ValidHeader",
 			UseCookie:          false,
 			UseHeader:          true,
-			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12, nil),
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12, &uuid.Max, true),
 			ExpectedStatusCode: http.StatusOK,
 		},
 		{
 			Name:               "ValidCookie",
 			UseCookie:          true,
 			UseHeader:          false,
-			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12, nil),
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12, &uuid.Max, true),
 			ExpectedStatusCode: http.StatusOK,
 		},
 		{
 			Name:               "ValidBoth",
 			UseCookie:          true,
 			UseHeader:          true,
-			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12, nil),
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12, &uuid.Max, true),
 			ExpectedStatusCode: http.StatusOK,
+		},
+		{
+			Name:               "BothGivenInvalidAccessToken",
+			UseCookie:          true,
+			UseHeader:          true,
+			AccessToken:        CreateAccessToken(t, deps.App.Config.Server.Auth, 12, &uuid.Max, false),
+			ExpectedStatusCode: http.StatusUnauthorized,
 		},
 	}
 

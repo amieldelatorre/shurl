@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/amieldelatorre/shurl/internal/config"
 	"github.com/amieldelatorre/shurl/internal/handlers"
+	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/testcontainers/testcontainers-go"
@@ -54,20 +57,10 @@ type Dependencies struct {
 }
 
 const (
-	SERVER_DOMAIN = "localhost"
-	DB_VERSION    = "20260304055040"
-	DB_DRIVER     = "postgres"
-	DB_NAME       = "shurl"
-	DB_USERNAME   = "shurl"
-	DB_PASSWORD   = "password"
-	JWT_KEY       = `-----BEGIN PRIVATE KEY-----
-MIHuAgEAMBAGByqGSM49AgEGBSuBBAAjBIHWMIHTAgEBBEIBxqUZyjGYLoZ12MOt
-E7LMqwi4jlmni3JE6rEFHRYgMAxHpBZIzA1DFMaJUSvhHoG7IDEUuh4dYdJKcORT
-crZz8nOhgYkDgYYABAGfTZFTug8rVyDng2JCCENWr9lnXoSETRk5p+3qi9Y7HAMM
-JpBr7R1JRHprFqI08godS7mRE/ZuGnwNs0BdCnrxGgBlcSbEelp0GPLdkd+MGhsd
-+5hecbTP6p0c9AeaZxa+TB0WnRg4d5Kojl5dgNmV9MUmUiItFA4jdUiHoZj3W6AC
-oQ==
------END PRIVATE KEY-----`
+	DB_VERSION     = "20260304055040"
+	DB_NAME        = "shurl"
+	DB_USERNAME    = "shurl"
+	DB_PASSWORD    = "password"
 	TEST_DATA_PATH = "/tmp/testdata.sql"
 )
 
@@ -132,6 +125,15 @@ func SetupDependencies(t *testing.T, ctx context.Context, enableCache bool) Depe
 		t.Fatal(err)
 	}
 
+	tempLogger := utils.NewCustomJsonLogger(os.Stdout, slog.LevelDebug)
+
+	config, err := config.LoadConfig("test/baseconf.yaml")
+	if err != nil {
+		tempLogger.ErrorExit(ctx, err.Error())
+	}
+	config.Database.Host = db.Host
+	config.Database.Port = db.Port
+
 	var cache Cache
 	if enableCache {
 		cache, err = GetValkeyInstane(ctx)
@@ -139,22 +141,12 @@ func SetupDependencies(t *testing.T, ctx context.Context, enableCache bool) Depe
 			t.Fatal(err)
 		}
 
-		t.Setenv("CACHE_ENABLED", "true")
-		t.Setenv("CACHE_HOST", cache.Host)
-		t.Setenv("CACHE_PORT", cache.Port)
+		config.Cache.Enabled = &enableCache
+		config.Cache.Host = cache.Host
+		config.Cache.Port = cache.Port
 	}
 
-	t.Setenv("SERVER_DOMAIN", SERVER_DOMAIN)
-	t.Setenv("DATABASE_RUN_MIGRATIONS", "true")
-	t.Setenv("DATABASE_DRIVER", DB_DRIVER)
-	t.Setenv("DATABASE_HOST", db.Host)
-	t.Setenv("DATABASE_PORT", db.Port)
-	t.Setenv("DATABASE_NAME", DB_NAME)
-	t.Setenv("DATABASE_USERNAME", DB_USERNAME)
-	t.Setenv("DATABASE_PASSWORD", DB_PASSWORD)
-	t.Setenv("SERVER_AUTH_JWT_KEY", JWT_KEY)
-
-	app := NewApp("")
+	app := NewApp(ctx, config)
 	ts := httptest.NewServer(app.Server.Handler)
 	deps := Dependencies{Db: db, Cache: cache, App: app, TestServer: ts}
 	err = deps.Db.Init(ctx)
@@ -165,7 +157,7 @@ func SetupDependencies(t *testing.T, ctx context.Context, enableCache bool) Depe
 	return deps
 }
 
-func CreateAccessToken(t *testing.T, config config.AuthConfig, hours int, id *uuid.UUID) string {
+func CreateAccessToken(t *testing.T, config config.AuthConfig, hours int, id *uuid.UUID, valid bool) string {
 	now := time.Now()
 	start := now.Add(-24 * time.Hour)
 	expiresAt := now.Add(time.Duration(hours) * time.Hour)
@@ -191,6 +183,19 @@ func CreateAccessToken(t *testing.T, config config.AuthConfig, hours int, id *uu
 	signedToken, err := token.SignedString(config.JwtEcdsaParsedKey)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if !valid {
+		tokenLen := len(signedToken)
+		var n string
+		lastChar := signedToken[tokenLen-1]
+		if string(lastChar) != "a" {
+			n = "a"
+		} else {
+			n = "b"
+		}
+
+		signedToken = signedToken[:tokenLen-1] + n
 	}
 
 	return signedToken

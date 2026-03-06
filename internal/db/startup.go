@@ -23,27 +23,41 @@ func GetDatabaseContext(ctx context.Context, config config.Config, logger utils.
 		logger.ErrorExit(ctx, err.Error())
 	}
 
-	if err = goose.SetDialect(dbMigrations.GetGooseDialect()); err != nil {
-		logger.ErrorExit(ctx, err.Error())
-	}
-
-	currentDbVersion, err := goose.GetDBVersion(dbMigrations.GetDb())
+	migrationsFs, err := dbMigrations.GetEmbedMigrations()
 	if err != nil {
 		logger.ErrorExit(ctx, err.Error())
 	}
 
-	logger.Info(ctx, "Current database version is: %v", "currentDbVersion", currentDbVersion)
-	if *config.Database.RunMigrations || forceRunMigrations {
-		logger.Info(ctx, "Running migrations")
-		goose.SetBaseFS(dbMigrations.GetEmbedMigrations())
-		if err = goose.Up(dbMigrations.GetDb(), "migrations"); err != nil {
-			logger.ErrorExit(ctx, err.Error())
-		}
-	} else {
-		logger.Info(ctx, "Skipped migrations")
+	provider, err := goose.NewProvider(
+		dbMigrations.GetGooseDialect(),
+		dbMigrations.GetDb(),
+		migrationsFs,
+	)
+	if err != nil {
+		logger.ErrorExit(ctx, err.Error())
 	}
 
-	logger.Info(ctx, "Successfully connected to the database")
+	currentDbVersion, err := provider.GetDBVersion(ctx)
+	if err != nil {
+		logger.ErrorExit(ctx, err.Error())
+	}
+
+	logger.Info(ctx, "current database version is: %v", "currentDbVersion", currentDbVersion)
+	if *config.Database.RunMigrations || forceRunMigrations {
+		logger.Info(ctx, "running migrations")
+		applied, err := provider.Up(ctx)
+		if err != nil {
+			logger.ErrorExit(ctx, err.Error())
+		}
+
+		for _, a := range applied {
+			logger.Info(ctx, "ran migration", "migration", a.String())
+		}
+	} else {
+		logger.Info(ctx, "skipped migrations")
+	}
+
+	logger.Info(ctx, "Ssccessfully connected to the database")
 
 	dbContext := postgresql.NewPostreSQLContext(logger, dbMigrations.DbPool)
 	return dbContext

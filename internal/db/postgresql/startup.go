@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"io/fs"
 
 	"github.com/amieldelatorre/shurl/internal/config"
 	"github.com/amieldelatorre/shurl/internal/utils"
@@ -41,14 +42,14 @@ func (m *PostgresDatabaseMigrations) GetDb() *sql.DB {
 	return stdDbPool
 }
 
-func (m *PostgresDatabaseMigrations) GetEmbedMigrations() embed.FS {
-	return embedMigrations
+func (m *PostgresDatabaseMigrations) GetEmbedMigrations() (fs.FS, error) {
+	return fs.Sub(embedMigrations, "migrations")
 }
 
 func (m *PostgresDatabaseMigrations) Close() {
 	m.DbPool.Close()
 }
 
-func (m *PostgresDatabaseMigrations) GetGooseDialect() string {
-	return string(goose.DialectPostgres)
+func (m *PostgresDatabaseMigrations) GetGooseDialect() goose.Dialect {
+	return goose.DialectPostgres
 }

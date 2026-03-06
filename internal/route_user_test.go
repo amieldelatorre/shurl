@@ -26,6 +26,7 @@ type PostUserTestCase struct {
 }
 
 func TestPostUserTestCases(t *testing.T) {
+	t.Parallel()
 	happyPathId, err := uuid.NewV7()
 	if err != nil {
 		t.Fatal(err)
@@ -270,9 +271,11 @@ func TestPostUserTestCases(t *testing.T) {
 
 	for _, testCase := range cases {
 		t.Run(testCase.Name+"WithCache", func(t *testing.T) {
+			t.Parallel()
 			runPostUserTest(t, testCase, true)
 		})
 		t.Run(testCase.Name+"NoCache", func(t *testing.T) {
+			t.Parallel()
 			runPostUserTest(t, testCase, false)
 		})
 	}
@@ -281,8 +284,8 @@ func TestPostUserTestCases(t *testing.T) {
 // for tests to be automatically picked up, file needs to be named *_test.go and functions need to be named in the pattern TestXxx
 func runPostUserTest(t *testing.T, testCase PostUserTestCase, cacheEnabled bool) {
 	ctx := context.Background()
-	t.Setenv("SERVER_ALLOW_REGISTRATION", "true")
 	deps := SetupDependencies(t, ctx, cacheEnabled)
+	deps.App.Config.Server.AllowRegistration = true
 
 	defer func() {
 		if err := deps.App.Server.Close(); err != nil {

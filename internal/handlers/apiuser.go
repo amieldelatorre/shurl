@@ -109,8 +109,12 @@ func (h *ApiUserHandler) PostUser(w http.ResponseWriter, r *http.Request) {
 
 func CreateUser(ctx context.Context, dbContext db.DbContext, requestedUser PostUserRequest, idempotencyKey uuid.UUID) (*types.User, error) {
 	// validate request
-	validate := validator.New()
-	err := validate.Struct(&requestedUser)
+	validate, err := utils.GetValidator()
+	if err != nil {
+		return nil, err
+	}
+
+	err = validate.Struct(&requestedUser)
 	if err != nil {
 		return nil, err
 	}
