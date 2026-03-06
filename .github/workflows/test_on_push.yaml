@@ -41,7 +41,7 @@ jobs:
 
       - name: Test sql test script is Ok
         run: |
-          make testsqltestdata || make testsqltestdataclean && exit 1
+          make validatetestdata
 
       - name: Run Tests
         run: |
