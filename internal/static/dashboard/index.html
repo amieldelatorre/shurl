@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/_/shared.css">
+    <link rel="stylesheet" href="/_/dashboard/dashboard.css">
+</head>
+
+<body>
+    <div id="page-loading" hidden>
+        <span class="spinner"></span>
+    </div>
+    <div id="info-banner"></div>
+    <div id="notification-container"></div>
+    <div class="main">
+        <nav>
+            <h1 class="logo">Shurl</h1>
+            <button id="logout-button" class="nav-item">Logout</button>
+        </nav>
+        <div class="content">
+        </div><!--End of div classcontent-->
+    </div><!--End of div class main-->
+    <script type="module" src="/_/shared.js"></script>
+    <script type="module" src="/_/dashboard/dashboard.js"></script>
+</body>
+
+</html>

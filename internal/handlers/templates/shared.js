@@ -7,6 +7,7 @@ export const ALLOW_ANONYMOUS = {{.allowAnonymous}};
 export const API_URL = "{{.apiUrl}}";
 export const LOGIN_URL = new URL("_/login", API_URL);
 export const HOME_URL = new URL("/", API_URL);
+export const DASHBOARD_URL = new URL("_/dashboard", API_URL);
 
 export const SHORT_URL_PATH = "api/v1/shorturl";
 export const SHORT_URL_ENDPONT = new URL(SHORT_URL_PATH, API_URL);
@@ -84,6 +85,23 @@ export function createErrorBox(messages) {
         let li = document.createElement("li");
         li.textContent = m;
         errList.appendChild(li);
+    }
+
+    return box
+}
+
+export function createSuccessBox(messages) {
+    const box = document.createElement("div");
+    box.classList.add("success-notification");
+    box.appendChild(createCloseButton());
+
+    const succcessList = document.createElement("ul");
+    box.appendChild(succcessList);
+
+    for (let m of messages) {
+        let li = document.createElement("li");
+        li.textContent = m;
+        succcessList.appendChild(li);
     }
 
     return box
@@ -264,4 +282,22 @@ export async function isLoggedIn() {
     PAGE_LOADING_CONTAINER.hidden = true;
     // everything else, even connection errors is false
     return (!result.isError && result.statusCode == 200);
+}
+
+export async function logout() {
+    PAGE_LOADING_CONTAINER.hidden = false;
+    let result = await fetchWithRetry(
+        LOGOUT_URL_ENDPOINT,
+        "POST",
+        {},
+        {}
+    );
+
+    if (!result.isError) {
+        NOTIFICATION_CONTAINER.prepend(createSuccessBox(["Successfully logged out, redirecting to login page in 1 second"]));
+        await sleep(1000);
+        window.location.href = LOGIN_URL;
+    }
+
+    PAGE_LOADING_CONTAINER.hidden = true;
 }

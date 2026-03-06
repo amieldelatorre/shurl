@@ -1,4 +1,4 @@
-import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, LOGIN_URL_ENDPOINT, DEFAULT_HEADERS, HOME_URL, sleep, addCookieBanner, ALLOW_LOGIN, INFO_BANNER_CONTAINER, LOGOUT_URL_ENDPOINT, isLoggedIn } from '../shared.js';
+import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, LOGIN_URL_ENDPOINT, DEFAULT_HEADERS, HOME_URL, DASHBOARD_URL, sleep, addCookieBanner, ALLOW_LOGIN, INFO_BANNER_CONTAINER, LOGOUT_URL_ENDPOINT, isLoggedIn } from '../shared.js';
 
 const LOGIN_FORM = document.getElementById("login-form");
 const EMAIL_INPUT = document.getElementById("email");
@@ -36,7 +36,7 @@ async function onSubmit(event) {
         });
 
         await sleep(500);
-        window.location.href = HOME_URL;
+        window.location.href = DASHBOARD_URL;
         return;
     }
 
