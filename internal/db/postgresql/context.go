@@ -253,6 +253,34 @@ func (p *PostgreSQLContext) GetShortUrlsByUserId(ctx context.Context, userId uui
 	})
 }
 
+func (p *PostgreSQLContext) DeleteShortUrlById(ctx context.Context, userId uuid.UUID, shortUrlId uuid.UUID) (types.DeleteShortUrlResult, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (types.DeleteShortUrlResult, error) {
+		ct, err := tx.Exec(ctx,
+			`DELETE FROM short_urls 
+			 WHERE user_id = $1 
+			 AND id = $2
+			`, userId, shortUrlId)
+		if err != nil {
+			return types.DeleteShortUrlResult{}, err
+		}
+
+		var res types.DeleteShortUrlResult
+		deleted := ct.RowsAffected()
+		switch deleted {
+		case 1:
+			res.Found = true
+			res.NumDeleted = int(deleted)
+			return res, nil
+		case 0:
+			res.Found = false
+			res.NumDeleted = int(deleted)
+			return res, nil
+		default:
+			return res, &types.DeleteCountUnexpectedErr{}
+		}
+	})
+}
+
 func storeIdempotencyKey(ctx context.Context, tx pgx.Tx, idempotencyKey uuid.UUID, requestHash string, referenceId uuid.UUID) (bool, string, uuid.UUID, error) {
 	idempotencyKeyUuid, err := uuid.NewV7()
 	if err != nil {

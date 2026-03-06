@@ -26,28 +26,33 @@ func RegisterRoutes(
 	templateHandler handlers.TemplateHandler,
 ) {
 	redirection := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(redirectionHandler.Redirect)))
-	getShortUrlsByUserId := m.RecoverPanic(m.AddRequestId(m.LoginRequired(http.HandlerFunc(apiShortUrlHandler.GetShortUrls))))
-	postShortUrl := m.RecoverPanic(m.AddRequestId(m.LoginRequiredOrAllowAnonymous(m.JsonRequired(m.IdempotencyKeyRequired(http.HandlerFunc(apiShortUrlHandler.PostShortUrl))))))
-	postUser := m.RecoverPanic(m.AddRequestId(m.AllowRegistration(m.JsonRequired(m.IdempotencyKeyRequired(http.HandlerFunc(apiUserHandler.PostUser))))))
-	getIndexJs := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(templateHandler.GetIndexJs)))
-	login := m.RecoverPanic(m.AddRequestId(m.AllowLogin(m.JsonRequired(http.HandlerFunc(authHandler.Login)))))
-	logout := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(authHandler.Logout)))
-	validate := m.RecoverPanic(m.AddRequestId(m.LoginRequired(http.HandlerFunc(authHandler.Validate))))
-	healthCheck := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(apiHealthHandler.HealthCheck)))
+	mux.Handle("GET /{slug}", redirection)
 
+	getShortUrlsByUserId := m.RecoverPanic(m.AddRequestId(m.LoginRequired(http.HandlerFunc(apiShortUrlHandler.GetShortUrls))))
+	mux.Handle("GET /api/v1/me/shorturl", getShortUrlsByUserId)
+	postShortUrl := m.RecoverPanic(m.AddRequestId(m.LoginRequiredOrAllowAnonymous(m.JsonRequired(m.IdempotencyKeyRequired(http.HandlerFunc(apiShortUrlHandler.PostShortUrl))))))
+	mux.Handle("POST /api/v1/shorturl", postShortUrl)
+	deleteShortUrl := m.RecoverPanic(m.AddRequestId(m.LoginRequired(http.HandlerFunc(apiShortUrlHandler.DeleteById))))
+	mux.Handle("DELETE /api/v1/me/shorturl/{shortUrlId}", deleteShortUrl)
+
+	postUser := m.RecoverPanic(m.AddRequestId(m.AllowRegistration(m.JsonRequired(m.IdempotencyKeyRequired(http.HandlerFunc(apiUserHandler.PostUser))))))
+	mux.Handle("POST /api/v1/user", postUser)
+	login := m.RecoverPanic(m.AddRequestId(m.AllowLogin(m.JsonRequired(http.HandlerFunc(authHandler.Login)))))
+	mux.Handle("POST /api/v1/auth/login", login)
+	logout := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(authHandler.Logout)))
+	mux.Handle("POST /api/v1/auth/logout", logout)
+	validate := m.RecoverPanic(m.AddRequestId(m.LoginRequired(http.HandlerFunc(authHandler.Validate))))
+	mux.Handle("GET /api/v1/auth/validate", validate)
+	healthCheck := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(apiHealthHandler.HealthCheck)))
+	mux.Handle("GET /api/v1/health", healthCheck)
+
+	getIndexJs := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(templateHandler.GetIndexJs)))
 	htmlSubFs, err := fs.Sub(embedHtmlStatic, "static")
 	if err != nil {
 		logger.ErrorExit(ctx, err.Error())
 	}
 	fileServer := http.FileServer(http.FS(htmlSubFs))
 
-	mux.Handle("POST /api/v1/shorturl", postShortUrl)
-	mux.Handle("GET /api/v1/me/shorturl", getShortUrlsByUserId)
-	mux.Handle("POST /api/v1/user", postUser)
-	mux.Handle("POST /api/v1/auth/login", login)
-	mux.Handle("POST /api/v1/auth/logout", logout)
-	mux.Handle("GET /api/v1/auth/validate", validate)
-	mux.Handle("GET /api/v1/health", healthCheck)
 	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
@@ -59,5 +64,4 @@ func RegisterRoutes(
 	mux.Handle("GET /", fileServer)
 	mux.Handle("GET /_/", http.StripPrefix("/_/", fileServer))
 	mux.Handle("GET /_/shared.js", http.StripPrefix("/_/", getIndexJs))
-	mux.Handle("GET /{slug}", redirection)
 }

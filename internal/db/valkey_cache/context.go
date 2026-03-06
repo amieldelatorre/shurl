@@ -245,6 +245,10 @@ func (v *ValkeyCacheContext) GetShortUrlsByUserId(ctx context.Context, userId uu
 	return userShortUrls, nil
 }
 
+func (v *ValkeyCacheContext) DeleteShortUrlById(ctx context.Context, userId uuid.UUID, shortUrlId uuid.UUID) (types.DeleteShortUrlResult, error) {
+	return v.dbContext.DeleteShortUrlById(ctx, userId, shortUrlId)
+}
+
 func (v *ValkeyCacheContext) getKey(ctx context.Context, key string) (*string, error) {
 	value, err := v.client.Get(ctx, key)
 	if err != nil {

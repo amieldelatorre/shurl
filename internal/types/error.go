@@ -16,3 +16,9 @@ type EmailOrUsernameExistsError struct{}
 func (e *EmailOrUsernameExistsError) Error() string {
 	return "Username or email already exists"
 }
+
+type DeleteCountUnexpectedErr struct{}
+
+func (e *DeleteCountUnexpectedErr) Error() string {
+	return "Number of deleted rows unexpected"
+}

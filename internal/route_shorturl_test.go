@@ -686,11 +686,7 @@ func runTestGetShortUrlsById(t *testing.T, tc GetShortUrlsByUserIdCase, cacheEna
 	}
 	req.URL.RawQuery = queryValues.Encode()
 
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
+	client := &http.Client{}
 
 	accessToken := CreateAccessToken(t, deps.App.Config.Server.Auth, 12, &tc.UserUuid, true)
 	if !tc.SkipAccessToken {
@@ -721,4 +717,141 @@ func runTestGetShortUrlsById(t *testing.T, tc GetShortUrlsByUserIdCase, cacheEna
 	if diff := cmp.Diff(tc.Expected, response, cmpopts.IgnoreFields(types.ShortUrlResponse{}, "CreatedAt", "ExpiresAt")); diff != "" {
 		t.Errorf("actual does not equal expected. diff: %s", diff)
 	}
+}
+
+type DeleteShortUrlByIdCase struct {
+	Name               string
+	ShortUrlIdToDelete string
+	UserId             uuid.UUID
+	SkipAccessToken    bool
+	ExpectedStatusCode int
+	ExpectedErrors     types.ErrorResponse
+}
+
+func TestDeleteShortUrlById(t *testing.T) {
+	t.Parallel()
+
+	validShortUrlId := "019cc05b-d0e6-764d-a207-60cb9fd4d147"
+	otherUserShortUrlId := "019cbb9b-b28c-7c35-9dc0-8f3c553ca432"
+	nullUserShortUrlId := "019cc1c7-d1f0-734f-a2b7-a5ee16fbad0b"
+
+	cases := []DeleteShortUrlByIdCase{
+		{
+			Name:               "HappyPath",
+			ShortUrlIdToDelete: validShortUrlId,
+			UserId:             validUserUuid,
+			SkipAccessToken:    false,
+			ExpectedStatusCode: http.StatusNoContent,
+			ExpectedErrors:     types.ErrorResponse{},
+		},
+		{
+			Name:               "NotLoggedIn",
+			ShortUrlIdToDelete: validShortUrlId,
+			UserId:             validUserUuid,
+			SkipAccessToken:    true,
+			ExpectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			Name:               "DeleteOtherUserShortUrl",
+			ShortUrlIdToDelete: otherUserShortUrlId,
+			UserId:             validUserUuid,
+			SkipAccessToken:    false,
+			ExpectedStatusCode: http.StatusNotFound,
+		},
+		{
+			Name:               "DeleteAnonymousShortUrl",
+			ShortUrlIdToDelete: nullUserShortUrlId,
+			UserId:             validUserUuid,
+			SkipAccessToken:    false,
+			ExpectedStatusCode: http.StatusNotFound,
+		},
+		{
+			Name:               "DeleteNotExistentShortUrl",
+			ShortUrlIdToDelete: uuid.Nil.String(),
+			UserId:             validUserUuid,
+			SkipAccessToken:    false,
+			ExpectedStatusCode: http.StatusNotFound,
+		},
+		{
+			Name:               "InvalidUuid",
+			ShortUrlIdToDelete: "sd",
+			UserId:             validUserUuid,
+			SkipAccessToken:    false,
+			ExpectedStatusCode: http.StatusBadRequest,
+			ExpectedErrors: types.ErrorResponse{
+				Errors: []string{"Short url id provided is not a valid uuid"},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name+"WithCache", func(t *testing.T) {
+			t.Parallel()
+			runDeleteShortUrlById(t, tc, true)
+		})
+		t.Run(tc.Name+"NoCache", func(t *testing.T) {
+			t.Parallel()
+			runDeleteShortUrlById(t, tc, false)
+		})
+	}
+
+}
+
+func runDeleteShortUrlById(t *testing.T, tc DeleteShortUrlByIdCase, cacheEnabled bool) {
+	ctx := context.Background()
+	deps := SetupDependencies(t, ctx, cacheEnabled)
+	defer func() {
+		if err := deps.App.Server.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := deps.Db.Container.Terminate(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		if cacheEnabled {
+			if err := deps.Cache.Container.Terminate(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}()
+
+	req, err := http.NewRequest(http.MethodDelete, deps.TestServer.URL+"/api/v1/me/shorturl/"+tc.ShortUrlIdToDelete, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client := &http.Client{}
+	accessToken := CreateAccessToken(t, deps.App.Config.Server.Auth, 12, &tc.UserId, true)
+	if !tc.SkipAccessToken {
+		req.Header.Add(handlers.HeaderAuthorization, fmt.Sprintf("Bearer %s", accessToken))
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.StatusCode != tc.ExpectedStatusCode {
+		t.Errorf("expected status %d got %d", tc.ExpectedStatusCode, res.StatusCode)
+	}
+
+	if len(tc.ExpectedErrors.Errors) > 0 {
+		var response types.ErrorResponse
+		decoder := json.NewDecoder(res.Body)
+		decoder.DisallowUnknownFields()
+		if err = decoder.Decode(&response); err != nil {
+			t.Error("failed to decode body", err.Error())
+		}
+
+		err = res.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(tc.ExpectedErrors, response); diff != "" {
+			t.Errorf("actual does not equal expected. diff: %s", diff)
+		}
+	}
+
 }

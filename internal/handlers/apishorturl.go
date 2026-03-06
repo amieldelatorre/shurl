@@ -212,6 +212,42 @@ func (h *ApiShortUrlHandler) GetShortUrls(w http.ResponseWriter, r *http.Request
 	EncodeResponse[GetShortUrlsByUserIdResponse](h.Logger, r.Context(), w, http.StatusOK, resp)
 }
 
+func (h *ApiShortUrlHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
+	userIdValue := r.Context().Value(UserIdKey)
+	userIdUuid, ok := userIdValue.(uuid.UUID)
+	if !ok {
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
+		h.Logger.Error(r.Context(), "casting uuid from context not ok")
+		return
+	}
+
+	shortUrlIdStr := strings.TrimSpace(r.PathValue("shortUrlId"))
+	shortUrlid, err := uuid.Parse(shortUrlIdStr)
+	if err != nil {
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Errors: []string{"Short url id provided is not a valid uuid"}})
+		return
+	}
+
+	delRes, err := h.Db.DeleteShortUrlById(r.Context(), userIdUuid, shortUrlid)
+	if err != nil {
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
+		h.Logger.Error(r.Context(), err.Error())
+		return
+	}
+
+	if !delRes.Found && delRes.NumDeleted == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if delRes.Found && delRes.NumDeleted == 1 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	h.Logger.Error(r.Context(), "reached end of short url delete by id. this should not happen")
+}
+
 func shortUrlToResponse(shortUrls []types.ShortUrl, baseUrl string) GetShortUrlsByUserIdResponse {
 	resp := GetShortUrlsByUserIdResponse{
 		Items: []types.ShortUrlResponse{},
