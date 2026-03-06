@@ -27,7 +27,7 @@ type Db struct {
 }
 
 func (d *Db) Init(ctx context.Context) error {
-	status, out, err := d.Container.Exec(ctx, []string{"psql", "-U", DB_USERNAME, "-d", DB_NAME, "-f", TEST_DATA_PATH})
+	status, out, err := d.Container.Exec(ctx, []string{"psql", "-U", DB_USERNAME, "-d", DB_NAME, "-f", TEST_DATA_PATH, "-v", "ON_ERROR_STOP=1"})
 	if err != nil {
 		return err
 	}

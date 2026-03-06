@@ -1,5 +1,5 @@
 DO $$
-BEGIN
+-- BEGIN
 -- ---------------------------------------------------------------------------------------------------------
 -- add users
     INSERT INTO public.shurl_users VALUES 
@@ -232,8 +232,8 @@ BEGIN
 -- There should be 6 users
 -- There should be 607 idempotency keys
 -- There should 3006 short urls
-EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'Error happened %, rolling back...', SQLERRM;
-    -- automatically aborts
-END $$;
+-- EXCEPTION WHEN OTHERS THEN
+--     RAISE NOTICE 'Error happened %, rolling back...', SQLERRM;
+--     -- automatically aborts
+-- END $$;
 -- automatically commits at the end

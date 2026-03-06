@@ -39,6 +39,10 @@ jobs:
         run: |
           go build -race .
 
+      - name: Test sql test script is Ok
+        run: |
+          make testsqltestdata || make testsqltestdataclean && exit 1
+
       - name: Run Tests
         run: |
           make test
