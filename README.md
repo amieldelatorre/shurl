@@ -20,4 +20,4 @@ openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:secp521r1 -out jwt_priv
 - [x] Background worker for deleting expired idempotency key
 - [x] ~~Redis~~ Valkey cache option
 - [x] Background worker for deleting expired short urls
-- [ ] Make short url expiry configurable
+- [x] Make short url expiry configurable

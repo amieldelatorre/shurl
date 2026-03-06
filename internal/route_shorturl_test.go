@@ -40,6 +40,12 @@ var (
 
 func TestPostShortUrl(t *testing.T) {
 	happyPathUrl := "https://google.com"
+	var ttlLessThanMin uint32 = 899
+	var ttlOnMin uint32 = 900
+	ttlOnAnonymousMax := handlers.MaxAnonymousShortUrlTtl
+	var ttlGreaterThanAnonymousMax uint32 = 604801
+	ttlOnAuthenticatedMax := handlers.MaxAuthenticatedShortUrlTtl
+	var ttlGreaterThanAuthenticatedMax uint32 = 2629747
 
 	t.Parallel()
 	cases := []PostShortUrlTestCase{
@@ -58,6 +64,78 @@ func TestPostShortUrl(t *testing.T) {
 			ExpectedStatusCode:    http.StatusUnauthorized,
 			Expected: types.ShortUrlResponse{
 				Errors: []string{"Login required"},
+			},
+		},
+		{
+			Name: "AnonymousLessThanMin",
+			Request: handlers.PostShortUrlRequest{
+				DestinationUrl: "https://google.com",
+				TTL:            &ttlLessThanMin,
+			},
+			AllowAnonymous:        true,
+			SkipIdempotencyKey:    false,
+			SkipJsonHeader:        false,
+			UseIdempotencyKeyUuid: nil,
+			UseUserUuid:           nil,
+			UseCookie:             false,
+			UseHeader:             false,
+			ExpectedStatusCode:    http.StatusBadRequest,
+			Expected: types.ShortUrlResponse{
+				Errors: []string{"Key: 'PostShortUrlRequest.TTL' Error:Field validation for 'TTL' failed on the 'min' tag"},
+			},
+		},
+		{
+			Name: "AnonymousGreaterThanMax",
+			Request: handlers.PostShortUrlRequest{
+				DestinationUrl: "https://google.com",
+				TTL:            &ttlGreaterThanAnonymousMax,
+			},
+			AllowAnonymous:        true,
+			SkipIdempotencyKey:    false,
+			SkipJsonHeader:        false,
+			UseIdempotencyKeyUuid: nil,
+			UseUserUuid:           nil,
+			UseCookie:             false,
+			UseHeader:             false,
+			ExpectedStatusCode:    http.StatusBadRequest,
+			Expected: types.ShortUrlResponse{
+				Errors: []string{"anonymous short urls can only be up to 604800 seconds"},
+			},
+		},
+		{
+			Name: "AnonymousOnMax",
+			Request: handlers.PostShortUrlRequest{
+				DestinationUrl: "https://google.com",
+				TTL:            &ttlOnAnonymousMax,
+			},
+			AllowAnonymous:        true,
+			SkipIdempotencyKey:    false,
+			SkipJsonHeader:        false,
+			UseIdempotencyKeyUuid: nil,
+			UseUserUuid:           nil,
+			UseCookie:             false,
+			UseHeader:             false,
+			ExpectedStatusCode:    http.StatusCreated,
+			Expected: types.ShortUrlResponse{
+				DestinationUrl: &happyPathUrl,
+			},
+		},
+		{
+			Name: "AnonymousOnMin",
+			Request: handlers.PostShortUrlRequest{
+				DestinationUrl: "https://google.com",
+				TTL:            &ttlOnMin,
+			},
+			AllowAnonymous:        true,
+			SkipIdempotencyKey:    false,
+			SkipJsonHeader:        false,
+			UseIdempotencyKeyUuid: nil,
+			UseUserUuid:           nil,
+			UseCookie:             false,
+			UseHeader:             false,
+			ExpectedStatusCode:    http.StatusCreated,
+			Expected: types.ShortUrlResponse{
+				DestinationUrl: &happyPathUrl,
 			},
 		},
 		{
@@ -336,6 +414,80 @@ func TestPostShortUrl(t *testing.T) {
 			ExpectedStatusCode:    http.StatusBadRequest,
 			Expected: types.ShortUrlResponse{
 				Errors: []string{"Key: 'PostShortUrlRequest.DestinationUrl' Error:Field validation for 'DestinationUrl' failed on the 'url' tag"},
+			},
+		},
+		{
+			Name: "AuthenticatedLessThanMin",
+			Request: handlers.PostShortUrlRequest{
+				DestinationUrl: "https://google.com",
+				TTL:            &ttlLessThanMin,
+			},
+			AllowAnonymous:        true,
+			SkipIdempotencyKey:    false,
+			SkipJsonHeader:        false,
+			UseIdempotencyKeyUuid: nil,
+			UseUserUuid:           &validUserUuid,
+			UseCookie:             true,
+			UseHeader:             false,
+			ExpectedStatusCode:    http.StatusBadRequest,
+			Expected: types.ShortUrlResponse{
+				Errors: []string{"Key: 'PostShortUrlRequest.TTL' Error:Field validation for 'TTL' failed on the 'min' tag"},
+			},
+		},
+		{
+			Name: "AuthenticatedGreaterThanMax",
+			Request: handlers.PostShortUrlRequest{
+				DestinationUrl: "https://google.com",
+				TTL:            &ttlGreaterThanAuthenticatedMax,
+			},
+			AllowAnonymous:        true,
+			SkipIdempotencyKey:    false,
+			SkipJsonHeader:        false,
+			UseIdempotencyKeyUuid: nil,
+			UseUserUuid:           &validUserUuid,
+			UseCookie:             true,
+			UseHeader:             false,
+			ExpectedStatusCode:    http.StatusBadRequest,
+			Expected: types.ShortUrlResponse{
+				Errors: []string{"Key: 'PostShortUrlRequest.TTL' Error:Field validation for 'TTL' failed on the 'max' tag"},
+			},
+		},
+		{
+			Name: "AuthenticatedOnMax",
+			Request: handlers.PostShortUrlRequest{
+				DestinationUrl: "https://google.com",
+				TTL:            &ttlOnAuthenticatedMax,
+			},
+			AllowAnonymous:        true,
+			SkipIdempotencyKey:    false,
+			SkipJsonHeader:        false,
+			UseIdempotencyKeyUuid: nil,
+			UseUserUuid:           &validUserUuid,
+			UseCookie:             true,
+			UseHeader:             false,
+			ExpectedStatusCode:    http.StatusCreated,
+			Expected: types.ShortUrlResponse{
+				DestinationUrl: &happyPathUrl,
+				UserId:         &validUserUuid,
+			},
+		},
+		{
+			Name: "AuthenticatedOnMin",
+			Request: handlers.PostShortUrlRequest{
+				DestinationUrl: "https://google.com",
+				TTL:            &ttlOnMin,
+			},
+			AllowAnonymous:        true,
+			SkipIdempotencyKey:    false,
+			SkipJsonHeader:        false,
+			UseIdempotencyKeyUuid: nil,
+			UseUserUuid:           &validUserUuid,
+			UseCookie:             true,
+			UseHeader:             false,
+			ExpectedStatusCode:    http.StatusCreated,
+			Expected: types.ShortUrlResponse{
+				DestinationUrl: &happyPathUrl,
+				UserId:         &validUserUuid,
 			},
 		},
 		{

@@ -20,10 +20,14 @@ import (
 )
 
 const (
-	SizeQueryParamError   = "Invalid page value, must be a number greater than or equal to 1"
-	DefaultSizeQueryParam = "20"
-	PageQueryParamError   = "Invalid page value, must be a number greater than or equal to 0 and less than or equal to 50"
-	DefaultPageQueryParam = "0"
+	SizeQueryParamError                    = "Invalid page value, must be a number greater than or equal to 1"
+	DefaultSizeQueryParam                  = "20"
+	PageQueryParamError                    = "Invalid page value, must be a number greater than or equal to 0 and less than or equal to 50"
+	DefaultPageQueryParam                  = "0"
+	DefaultAnonymousShortUrlTtl     uint32 = 259200 // 3 days
+	MaxAnonymousShortUrlTtl         uint32 = 604800 // 7 Days
+	DefaultAuthenticatedShortUrlTtl uint32 = 604800 // 7 days
+	MaxAuthenticatedShortUrlTtl
 )
 
 type ApiShortUrlHandler struct {
@@ -37,7 +41,8 @@ func NewApiShortUrlHandler(logger utils.CustomJsonLogger, dbcontext db.DbContext
 }
 
 type PostShortUrlRequest struct {
-	DestinationUrl string `json:"destination_url" validate:"required,url"`
+	DestinationUrl string  `json:"destination_url" validate:"required,url"`
+	TTL            *uint32 `json:"ttl" validate:"required,min=900,max=2629746"` // 15 minutes to 1 months
 }
 
 func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +71,22 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 			h.Logger.Error(r.Context(), "Server error when parsing json body. error: %v", "error", err.Error())
 		}
 		return
+	}
+
+	if req.TTL != nil {
+		// anonymous users can only have a maximum of 7 days
+		if userIdUuid == uuid.Nil && *req.TTL > MaxAnonymousShortUrlTtl {
+			EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ErrorResponse{Errors: []string{fmt.Sprintf("anonymous short urls can only be up to %d seconds", MaxAnonymousShortUrlTtl)}})
+			return
+		}
+	} else {
+		var ttl uint32
+		if userIdUuid == uuid.Nil {
+			ttl = DefaultAnonymousShortUrlTtl
+		} else {
+			ttl = DefaultAuthenticatedShortUrlTtl
+		}
+		req.TTL = &ttl
 	}
 
 	req.DestinationUrl = strings.TrimSpace(req.DestinationUrl)
@@ -109,7 +130,7 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 		Id:             id,
 		DestinationUrl: req.DestinationUrl,
 		Slug:           slug,
-		ExpiresAt:      time.Now().Add(time.Duration(60*60*24*7) * time.Second), // 7 Days for now
+		ExpiresAt:      time.Now().Add(time.Duration(*req.TTL) * time.Second),
 	}
 	if userIdUuid != uuid.Nil {
 		newShortUrl.UserId = &userIdUuid
