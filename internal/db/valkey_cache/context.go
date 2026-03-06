@@ -3,6 +3,7 @@ package valkey_cache
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -43,7 +44,7 @@ func (v *ValkeyCacheContext) Close() {
 func (v *ValkeyCacheContext) GetDatabaseVersion(ctx context.Context) (int64, error) {
 	resStr, err := v.getKey(ctx, DB_VERSION_KEY)
 	if err != nil {
-		v.logger.Error(ctx, "error getting database version from cache")
+		v.logger.Error(ctx, "error getting database version from cache", "error", err.Error())
 	}
 
 	if resStr != nil {
@@ -58,7 +59,7 @@ func (v *ValkeyCacheContext) GetDatabaseVersion(ctx context.Context) (int64, err
 	versionStr := strconv.FormatInt(version, 10)
 	err = v.setKey(ctx, DB_VERSION_KEY, versionStr)
 	if err != nil {
-		v.logger.Error(ctx, "could not set database version in valkey")
+		v.logger.Error(ctx, "could not set database version in valkey", "error", err.Error())
 	}
 
 	return version, nil
@@ -73,7 +74,7 @@ func (v *ValkeyCacheContext) GetShortUrlById(ctx context.Context, id uuid.UUID) 
 	cacheKey := SHORT_URL_ID_PREFIX + id.String()
 	resStr, err := v.getKey(ctx, cacheKey)
 	if err != nil {
-		v.logger.Error(ctx, "error getting short url by id from cache")
+		v.logger.Error(ctx, "error getting short url by id from cache", "error", err.Error())
 	}
 
 	if resStr != nil {
@@ -97,13 +98,13 @@ func (v *ValkeyCacheContext) GetShortUrlById(ctx context.Context, id uuid.UUID) 
 
 	strData, err := json.Marshal(shortUrl)
 	if err != nil {
-		v.logger.Error(ctx, "Could not marshal data for valkey")
+		v.logger.Error(ctx, "Could not marshal data for valkey", "error", err.Error())
 		return shortUrl, nil
 	}
 
 	err = v.setKey(ctx, cacheKey, string(strData))
 	if err != nil {
-		v.logger.Error(ctx, "could not set short url in valkey")
+		v.logger.Error(ctx, "could not set short url in valkey", "error", err.Error())
 	}
 	return shortUrl, nil
 }
@@ -112,7 +113,7 @@ func (v *ValkeyCacheContext) GetShortUrlBySlug(ctx context.Context, slug string)
 	cacheKey := SHORT_URL_SLUG_PREFIX + slug
 	resStr, err := v.getKey(ctx, cacheKey)
 	if err != nil {
-		v.logger.Error(ctx, "error getting short url by slug from cache")
+		v.logger.Error(ctx, "error getting short url by slug from cache", "error", err.Error())
 	}
 
 	if resStr != nil {
@@ -136,13 +137,13 @@ func (v *ValkeyCacheContext) GetShortUrlBySlug(ctx context.Context, slug string)
 
 	strData, err := json.Marshal(shortUrl)
 	if err != nil {
-		v.logger.Error(ctx, "could not marshal short url for valkey")
+		v.logger.Error(ctx, "could not marshal short url for valkey", "error", err.Error())
 		return shortUrl, nil
 	}
 
 	err = v.setKey(ctx, cacheKey, string(strData))
 	if err != nil {
-		v.logger.Error(ctx, "could not set short url in valkey")
+		v.logger.Error(ctx, "could not set short url in valkey", "error", err.Error())
 	}
 
 	return shortUrl, nil
@@ -155,7 +156,7 @@ func (v *ValkeyCacheContext) GetUserByEmail(ctx context.Context, email string) (
 	cacheKey := USER_EMAIL_PREFIX + email
 	resStr, err := v.getKey(ctx, cacheKey)
 	if err != nil {
-		v.logger.Error(ctx, "error getting user by email from cache")
+		v.logger.Error(ctx, "error getting user by email from cache", "error", err.Error())
 	}
 
 	if resStr != nil {
@@ -179,13 +180,13 @@ func (v *ValkeyCacheContext) GetUserByEmail(ctx context.Context, email string) (
 
 	strData, err := json.Marshal(user)
 	if err != nil {
-		v.logger.Error(ctx, "could not marshal user for valkey")
+		v.logger.Error(ctx, "could not marshal user for valkey", "error", err.Error())
 		return user, nil
 	}
 
 	err = v.setKey(ctx, cacheKey, string(strData))
 	if err != nil {
-		v.logger.Error(ctx, "could not set user in valkey")
+		v.logger.Error(ctx, "could not set user in valkey", "error", err.Error())
 	}
 
 	return user, nil
@@ -207,6 +208,43 @@ func (v *ValkeyCacheContext) DeleteExpiredShortUrlsBatched(ctx context.Context, 
 	return v.dbContext.DeleteExpiredShortUrlsBatched(ctx, batchSize)
 }
 
+func (v *ValkeyCacheContext) GetShortUrlsByUserId(ctx context.Context, userId uuid.UUID, page int, size int) ([]types.ShortUrl, error) {
+	var userShortUrls []types.ShortUrl
+	cacheKey := getShortUrlsByUserIdCacheKey(userId, page, size)
+
+	resStr, err := v.getKey(ctx, cacheKey)
+	if err != nil {
+		v.logger.Error(ctx, "error getting short urls by user id from cache", "error", err.Error())
+	}
+
+	if resStr != nil {
+		err = json.Unmarshal([]byte(*resStr), &userShortUrls)
+		if err != nil {
+			return nil, err
+		}
+
+		return userShortUrls, nil
+	}
+
+	userShortUrls, err = v.dbContext.GetShortUrlsByUserId(ctx, userId, page, size)
+	if err != nil {
+		return nil, err
+	}
+
+	strData, err := json.Marshal(userShortUrls)
+	if err != nil {
+		v.logger.Error(ctx, "could not short urls for valkey", "error", err.Error())
+		return userShortUrls, nil
+	}
+
+	err = v.setKey(ctx, cacheKey, string(strData))
+	if err != nil {
+		v.logger.Error(ctx, "could not set short urls for user id in valkey", "error", err.Error())
+	}
+
+	return userShortUrls, nil
+}
+
 func (v *ValkeyCacheContext) getKey(ctx context.Context, key string) (*string, error) {
 	value, err := v.client.Get(ctx, key)
 	if err != nil {
@@ -226,4 +264,8 @@ func (v *ValkeyCacheContext) setKey(ctx context.Context, key string, value strin
 		Expiry: options.NewExpiryIn(time.Duration(300) * time.Second),
 	})
 	return err
+}
+
+func getShortUrlsByUserIdCacheKey(userId uuid.UUID, page int, size int) string {
+	return fmt.Sprintf("shurl_user::%s:short_urls:page::%d:size::%d", userId.String(), page, size)
 }

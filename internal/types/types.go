@@ -21,7 +21,7 @@ type ShortUrl struct {
 	UserId         *uuid.UUID `json:"user_id,omitempty"`
 }
 
-type CreateShortUrlResponse struct {
+type ShortUrlResponse struct {
 	Id             *uuid.UUID `json:"id,omitempty"`
 	DestinationUrl *string    `json:"destination_url,omitempty"`
 	Slug           *string    `json:"slug,omitempty"`

@@ -219,6 +219,40 @@ func (p *PostgreSQLContext) DeleteExpiredShortUrlsBatched(ctx context.Context, b
 	})
 }
 
+func (p *PostgreSQLContext) GetShortUrlsByUserId(ctx context.Context, userId uuid.UUID, page int, size int) ([]types.ShortUrl, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) ([]types.ShortUrl, error) {
+		var shortUrls []types.ShortUrl
+		offset := page * size
+
+		q := `SELECT id, destination_url, slug, created_at, user_id, expires_at 
+				FROM short_urls
+				WHERE user_id = $1
+				ORDER BY created_at DESC
+				LIMIT $2 OFFSET $3`
+		rows, err := tx.Query(ctx, q, userId, size, offset)
+		if err != nil {
+			return shortUrls, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var r types.ShortUrl
+			err := rows.Scan(&r.Id, &r.DestinationUrl, &r.Slug, &r.CreatedAt, &r.UserId, &r.ExpiresAt)
+			if err != nil {
+				return shortUrls, err
+			}
+
+			shortUrls = append(shortUrls, r)
+		}
+
+		if err = rows.Err(); err != nil {
+			return shortUrls, err
+		}
+
+		return shortUrls, nil
+	})
+}
+
 func storeIdempotencyKey(ctx context.Context, tx pgx.Tx, idempotencyKey uuid.UUID, requestHash string, referenceId uuid.UUID) (bool, string, uuid.UUID, error) {
 	idempotencyKeyUuid, err := uuid.NewV7()
 	if err != nil {

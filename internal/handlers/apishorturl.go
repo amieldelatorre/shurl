@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,13 @@ import (
 	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+)
+
+const (
+	SizeQueryParamError   = "Invalid page value, must be a number greater than or equal to 1"
+	DefaultSizeQueryParam = "20"
+	PageQueryParamError   = "Invalid page value, must be a number greater than or equal to 0 and less than or equal to 50"
+	DefaultPageQueryParam = "0"
 )
 
 type ApiShortUrlHandler struct {
@@ -71,7 +79,7 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 	err = validate.Struct(&req)
 	if err != nil {
 		if errors.As(err, &validationError) {
-			EncodeResponse[types.CreateShortUrlResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.CreateShortUrlResponse{Errors: EncodeValidationError(validationError)})
+			EncodeResponse[types.ShortUrlResponse](h.Logger, r.Context(), w, http.StatusBadRequest, types.ShortUrlResponse{Errors: EncodeValidationError(validationError)})
 			return
 		}
 		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
@@ -122,7 +130,7 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	response := types.CreateShortUrlResponse{
+	response := types.ShortUrlResponse{
 		Id:             &shortUrl.Id,
 		DestinationUrl: &shortUrl.DestinationUrl,
 		Slug:           &shortUrl.Slug,
@@ -132,7 +140,7 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 		UserId:         shortUrl.UserId,
 	}
 
-	EncodeResponse[types.CreateShortUrlResponse](h.Logger, r.Context(), w, http.StatusCreated, response)
+	EncodeResponse[types.ShortUrlResponse](h.Logger, r.Context(), w, http.StatusCreated, response)
 	h.Logger.Debug(r.Context(), "PostShortUrl created short url with id '%s'", "shortUrlId", shortUrl.Id, "responseStatusCode", 201)
 }
 
@@ -155,6 +163,74 @@ func (h *ApiShortUrlHandler) generateUniqueSlug(ctx context.Context) (string, er
 	}
 
 	return slug, nil
+}
+
+type GetShortUrlsByUserIdResponse struct {
+	Items  []types.ShortUrlResponse `json:"items"`
+	Errors []string                 `json:"errors,omitempty"`
+}
+
+func (h *ApiShortUrlHandler) GetShortUrls(w http.ResponseWriter, r *http.Request) {
+	userIdValue := r.Context().Value(UserIdKey)
+	userIdUuid, ok := userIdValue.(uuid.UUID)
+	if !ok {
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
+		h.Logger.Error(r.Context(), "casting uuid from context not ok")
+		return
+	}
+
+	params := r.URL.Query()
+
+	pageStr := strings.TrimSpace(params.Get("page"))
+	if pageStr == "" {
+		pageStr = DefaultPageQueryParam
+	}
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 0 {
+		EncodeResponse[GetShortUrlsByUserIdResponse](h.Logger, r.Context(), w, http.StatusBadRequest, GetShortUrlsByUserIdResponse{Errors: []string{PageQueryParamError}})
+		return
+	}
+
+	sizeStr := strings.TrimSpace(params.Get("size"))
+	if sizeStr == "" {
+		sizeStr = DefaultSizeQueryParam
+	}
+	size, err := strconv.Atoi(sizeStr)
+	if err != nil || size < 1 || size > 50 {
+		EncodeResponse[GetShortUrlsByUserIdResponse](h.Logger, r.Context(), w, http.StatusBadRequest, GetShortUrlsByUserIdResponse{Errors: []string{SizeQueryParamError}})
+		return
+	}
+
+	shortUrls, err := h.Db.GetShortUrlsByUserId(r.Context(), userIdUuid, page, size)
+	if err != nil {
+		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
+		h.Logger.Error(r.Context(), err.Error())
+		return
+	}
+
+	resp := shortUrlToResponse(shortUrls, h.BaseUrl)
+	EncodeResponse[GetShortUrlsByUserIdResponse](h.Logger, r.Context(), w, http.StatusOK, resp)
+}
+
+func shortUrlToResponse(shortUrls []types.ShortUrl, baseUrl string) GetShortUrlsByUserIdResponse {
+	resp := GetShortUrlsByUserIdResponse{
+		Items: []types.ShortUrlResponse{},
+	}
+	for _, s := range shortUrls {
+		r := types.ShortUrlResponse{
+			Id:             &s.Id,
+			DestinationUrl: &s.DestinationUrl,
+			Slug:           &s.Slug,
+			CreatedAt:      &s.CreatedAt,
+			ExpiresAt:      &s.ExpiresAt,
+			Url:            createShortUrl(baseUrl, s.Slug),
+			UserId:         s.UserId,
+			Errors:         []string{},
+		}
+
+		resp.Items = append(resp.Items, r)
+	}
+	return resp
 }
 
 func GenerateSlug() (string, error) {

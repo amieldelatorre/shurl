@@ -11,6 +11,7 @@ type DbContext interface {
 	Ping(ctx context.Context) error
 	GetDatabaseVersion(ctx context.Context) (int64, error)
 	CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID, request_hash string) (*types.ShortUrl, error)
+	GetShortUrlsByUserId(ctx context.Context, userId uuid.UUID, page int, size int) ([]types.ShortUrl, error)
 	GetShortUrlById(ctx context.Context, id uuid.UUID) (*types.ShortUrl, error)
 	GetShortUrlBySlug(ctx context.Context, slug string) (*types.ShortUrl, error)
 	CreateUser(ctx context.Context, idempotencyKey uuid.UUID, requestHash string, req types.CreateUserRequest) (*types.User, error)

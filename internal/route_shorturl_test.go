@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -29,12 +30,15 @@ type PostShortUrlTestCase struct {
 	UseInvalidAccessToken bool
 	UseExpiredAccessToken bool
 	ExpectedStatusCode    int
-	Expected              types.CreateShortUrlResponse
+	Expected              types.ShortUrlResponse
 }
 
+var (
+	usedIdempotencyKey = uuid.MustParse("019cc05a-72a5-7479-a1dd-0105df4fc6c4")
+	validUserUuid      = uuid.MustParse("019cc05a-7415-7528-8c5a-e0487fad449c")
+)
+
 func TestPostShortUrl(t *testing.T) {
-	usedIdempotencyKey := uuid.MustParse("019cc05a-72a5-7479-a1dd-0105df4fc6c4")
-	validUserUuid := uuid.MustParse("019cc05a-7415-7528-8c5a-e0487fad449c")
 	happyPathUrl := "https://google.com"
 
 	t.Parallel()
@@ -52,7 +56,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             false,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusUnauthorized,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Login required"},
 			},
 		},
@@ -69,7 +73,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             false,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Endpoint requires header 'Content-Type' with value 'application/json'"},
 			},
 		},
@@ -86,7 +90,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             false,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Missing uuidv7 idempotency key header 'X-Idempotency-Key'"},
 			},
 		},
@@ -103,7 +107,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             false,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"X-Idempotency-Key header value has already been used"},
 			},
 		},
@@ -120,7 +124,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             false,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Key: 'PostShortUrlRequest.DestinationUrl' Error:Field validation for 'DestinationUrl' failed on the 'required' tag"},
 			},
 		},
@@ -137,7 +141,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             false,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Key: 'PostShortUrlRequest.DestinationUrl' Error:Field validation for 'DestinationUrl' failed on the 'url' tag"},
 			},
 		},
@@ -155,7 +159,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseHeader:             true,
 			UseInvalidAccessToken: true,
 			ExpectedStatusCode:    http.StatusUnauthorized,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Invalid access token"},
 			},
 		},
@@ -173,7 +177,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseHeader:             false,
 			UseInvalidAccessToken: true,
 			ExpectedStatusCode:    http.StatusUnauthorized,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Invalid access token"},
 			},
 		},
@@ -191,7 +195,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseHeader:             false,
 			UseInvalidAccessToken: true,
 			ExpectedStatusCode:    http.StatusUnauthorized,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Invalid access token"},
 			},
 		},
@@ -209,7 +213,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseHeader:             true,
 			UseExpiredAccessToken: true,
 			ExpectedStatusCode:    http.StatusUnauthorized,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Invalid access token"},
 			},
 		},
@@ -227,7 +231,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseHeader:             false,
 			UseExpiredAccessToken: true,
 			ExpectedStatusCode:    http.StatusUnauthorized,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Invalid access token"},
 			},
 		},
@@ -245,7 +249,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseHeader:             false,
 			UseExpiredAccessToken: true,
 			ExpectedStatusCode:    http.StatusUnauthorized,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Invalid access token"},
 			},
 		},
@@ -262,7 +266,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             true,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Endpoint requires header 'Content-Type' with value 'application/json'"},
 			},
 		},
@@ -279,7 +283,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             true,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Missing uuidv7 idempotency key header 'X-Idempotency-Key'"},
 			},
 		},
@@ -296,7 +300,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             true,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"X-Idempotency-Key header value has already been used"},
 			},
 		},
@@ -313,7 +317,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             true,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Key: 'PostShortUrlRequest.DestinationUrl' Error:Field validation for 'DestinationUrl' failed on the 'required' tag"},
 			},
 		},
@@ -330,7 +334,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             true,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusBadRequest,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				Errors: []string{"Key: 'PostShortUrlRequest.DestinationUrl' Error:Field validation for 'DestinationUrl' failed on the 'url' tag"},
 			},
 		},
@@ -347,7 +351,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             true,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusCreated,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				DestinationUrl: &happyPathUrl,
 				UserId:         &validUserUuid,
 			},
@@ -365,7 +369,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             false,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusCreated,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				DestinationUrl: &happyPathUrl,
 			},
 		},
@@ -382,7 +386,7 @@ func TestPostShortUrl(t *testing.T) {
 			UseCookie:             true,
 			UseHeader:             false,
 			ExpectedStatusCode:    http.StatusCreated,
-			Expected: types.CreateShortUrlResponse{
+			Expected: types.ShortUrlResponse{
 				DestinationUrl: &happyPathUrl,
 				UserId:         &validUserUuid,
 			},
@@ -488,7 +492,7 @@ func runTestPostShortUrl(t *testing.T, tc PostShortUrlTestCase, cacheEnabled boo
 		t.Errorf("expected status %d got %d", tc.ExpectedStatusCode, res.StatusCode)
 	}
 
-	var shortUrlPostResponse types.CreateShortUrlResponse
+	var shortUrlPostResponse types.ShortUrlResponse
 	decoder := json.NewDecoder(res.Body)
 	decoder.DisallowUnknownFields()
 	if err = decoder.Decode(&shortUrlPostResponse); err != nil {
@@ -500,7 +504,7 @@ func runTestPostShortUrl(t *testing.T, tc PostShortUrlTestCase, cacheEnabled boo
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff(tc.Expected, shortUrlPostResponse, cmpopts.IgnoreFields(types.CreateShortUrlResponse{}, "CreatedAt", "ExpiresAt", "Slug", "Id", "Url")); diff != "" {
+	if diff := cmp.Diff(tc.Expected, shortUrlPostResponse, cmpopts.IgnoreFields(types.ShortUrlResponse{}, "CreatedAt", "ExpiresAt", "Slug", "Id", "Url")); diff != "" {
 		t.Errorf("actual does not equal expected. diff: %s", diff)
 	}
 
@@ -508,5 +512,213 @@ func runTestPostShortUrl(t *testing.T, tc PostShortUrlTestCase, cacheEnabled boo
 		if shortUrlPostResponse.UserId == nil {
 			t.Errorf("user id is nil")
 		}
+	}
+}
+
+type GetShortUrlsByUserIdCase struct {
+	Name               string
+	Page               int
+	SkipPage           bool
+	Size               int
+	SkipSize           bool
+	UserUuid           uuid.UUID
+	SkipAccessToken    bool
+	ExpectedStatusCode int
+	Expected           handlers.GetShortUrlsByUserIdResponse
+}
+
+func TestGetShortUrlsByUserId(t *testing.T) {
+	t.Parallel()
+
+	expect1Id := uuid.MustParse("019cc05b-d0e6-764d-a207-60cb9fd4d147")
+	expect1Destinationurl := "https://google.com"
+	expect1Slug := "zzM0ofu"
+	expect1Url := "http://localhost:8080/zzM0ofu"
+
+	expect2Id := uuid.MustParse("019cc05b-c45d-76f9-ab03-02af299e76ea")
+	expect2Destinationurl := "https://google.com"
+	expect2Slug := "4kJe27"
+	expect2Url := "http://localhost:8080/4kJe27"
+
+	expect3Id := uuid.MustParse("019cc05b-b0ca-7bf2-863f-2356491c227d")
+	expect3Destinationurl := "https://google.com"
+	expect3Slug := "S0VieOF"
+	expect3Url := "http://localhost:8080/S0VieOF"
+
+	cases := []GetShortUrlsByUserIdCase{
+		{
+			Name:               "LoginRequired",
+			Page:               -1,
+			Size:               0,
+			UserUuid:           validUserUuid,
+			SkipAccessToken:    true,
+			ExpectedStatusCode: http.StatusUnauthorized,
+			Expected: handlers.GetShortUrlsByUserIdResponse{
+				Errors: []string{"Login required"},
+			},
+		},
+		{
+			Name:               "InvalidPage",
+			Page:               -1,
+			Size:               0,
+			UserUuid:           validUserUuid,
+			ExpectedStatusCode: http.StatusBadRequest,
+			Expected: handlers.GetShortUrlsByUserIdResponse{
+				Errors: []string{handlers.PageQueryParamError},
+			},
+		},
+		{
+			Name:               "InvalidSize",
+			Page:               0,
+			Size:               0,
+			UserUuid:           validUserUuid,
+			ExpectedStatusCode: http.StatusBadRequest,
+			Expected: handlers.GetShortUrlsByUserIdResponse{
+				Errors: []string{handlers.SizeQueryParamError},
+			},
+		},
+		{
+			Name:               "Expect1",
+			Page:               0,
+			Size:               1,
+			UserUuid:           validUserUuid,
+			ExpectedStatusCode: http.StatusOK,
+			Expected: handlers.GetShortUrlsByUserIdResponse{
+				Items: []types.ShortUrlResponse{
+					{
+						Id:             &expect1Id,
+						DestinationUrl: &expect1Destinationurl,
+						Slug:           &expect1Slug,
+						Url:            expect1Url,
+						UserId:         &validUserUuid,
+					},
+				},
+			},
+		},
+		{
+			Name:               "ExpectNoneOffsetOvershoot",
+			Page:               3,
+			Size:               20,
+			UserUuid:           validUserUuid,
+			ExpectedStatusCode: http.StatusOK,
+			Expected: handlers.GetShortUrlsByUserIdResponse{
+				Items: []types.ShortUrlResponse{},
+			},
+		},
+		{
+			Name:               "Expect3Normal",
+			Page:               -1,
+			SkipPage:           true,
+			Size:               -1,
+			SkipSize:           true,
+			UserUuid:           validUserUuid,
+			ExpectedStatusCode: http.StatusOK,
+			Expected: handlers.GetShortUrlsByUserIdResponse{
+				Items: []types.ShortUrlResponse{
+					{
+						Id:             &expect1Id,
+						DestinationUrl: &expect1Destinationurl,
+						Slug:           &expect1Slug,
+						Url:            expect1Url,
+						UserId:         &validUserUuid,
+					},
+					{
+						Id:             &expect2Id,
+						DestinationUrl: &expect2Destinationurl,
+						Slug:           &expect2Slug,
+						Url:            expect2Url,
+						UserId:         &validUserUuid,
+					},
+					{
+						Id:             &expect3Id,
+						DestinationUrl: &expect3Destinationurl,
+						Slug:           &expect3Slug,
+						Url:            expect3Url,
+						UserId:         &validUserUuid,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name+"WithCache", func(t *testing.T) {
+			t.Parallel()
+			runTestGetShortUrlsById(t, tc, true)
+		})
+		t.Run(tc.Name+"NoCache", func(t *testing.T) {
+			t.Parallel()
+			runTestGetShortUrlsById(t, tc, false)
+		})
+	}
+}
+
+func runTestGetShortUrlsById(t *testing.T, tc GetShortUrlsByUserIdCase, cacheEnabled bool) {
+	ctx := context.Background()
+	deps := SetupDependencies(t, ctx, cacheEnabled)
+
+	defer func() {
+		if err := deps.App.Server.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := deps.Db.Container.Terminate(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		if cacheEnabled {
+			if err := deps.Cache.Container.Terminate(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}()
+
+	req, err := http.NewRequest(http.MethodGet, deps.TestServer.URL+"/api/v1/me/shorturl", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	queryValues := req.URL.Query()
+	if !tc.SkipPage {
+		queryValues.Add("page", strconv.Itoa(tc.Page))
+	}
+	if !tc.SkipSize {
+		queryValues.Add("size", strconv.Itoa(tc.Size))
+	}
+	req.URL.RawQuery = queryValues.Encode()
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	accessToken := CreateAccessToken(t, deps.App.Config.Server.Auth, 12, &tc.UserUuid, true)
+	if !tc.SkipAccessToken {
+		req.Header.Add(handlers.HeaderAuthorization, fmt.Sprintf("Bearer %s", accessToken))
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.StatusCode != tc.ExpectedStatusCode {
+		t.Errorf("expected status %d got %d", tc.ExpectedStatusCode, res.StatusCode)
+	}
+
+	var response handlers.GetShortUrlsByUserIdResponse
+	decoder := json.NewDecoder(res.Body)
+	decoder.DisallowUnknownFields()
+	if err = decoder.Decode(&response); err != nil {
+		t.Error("failed to decode body", err.Error())
+	}
+
+	err = res.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(tc.Expected, response, cmpopts.IgnoreFields(types.ShortUrlResponse{}, "CreatedAt", "ExpiresAt")); diff != "" {
+		t.Errorf("actual does not equal expected. diff: %s", diff)
 	}
 }

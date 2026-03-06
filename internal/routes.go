@@ -26,6 +26,7 @@ func RegisterRoutes(
 	templateHandler handlers.TemplateHandler,
 ) {
 	redirection := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(redirectionHandler.Redirect)))
+	getShortUrlsByUserId := m.RecoverPanic(m.AddRequestId(m.LoginRequired(http.HandlerFunc(apiShortUrlHandler.GetShortUrls))))
 	postShortUrl := m.RecoverPanic(m.AddRequestId(m.LoginRequiredOrAllowAnonymous(m.JsonRequired(m.IdempotencyKeyRequired(http.HandlerFunc(apiShortUrlHandler.PostShortUrl))))))
 	postUser := m.RecoverPanic(m.AddRequestId(m.AllowRegistration(m.JsonRequired(m.IdempotencyKeyRequired(http.HandlerFunc(apiUserHandler.PostUser))))))
 	getIndexJs := m.RecoverPanic(m.AddRequestId(http.HandlerFunc(templateHandler.GetIndexJs)))
@@ -41,6 +42,7 @@ func RegisterRoutes(
 	fileServer := http.FileServer(http.FS(htmlSubFs))
 
 	mux.Handle("POST /api/v1/shorturl", postShortUrl)
+	mux.Handle("GET /api/v1/me/shorturl", getShortUrlsByUserId)
 	mux.Handle("POST /api/v1/user", postUser)
 	mux.Handle("POST /api/v1/auth/login", login)
 	mux.Handle("POST /api/v1/auth/logout", logout)
