@@ -25,7 +25,7 @@ func (h *RedirectionHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	destination, err := h.Db.GetShortUrlBySlug(r.Context(), slug)
+	destination, err := h.Db.GetShortUrlBySlug(r.Context(), slug, true)
 	if err != nil {
 		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
 		h.Logger.Error(r.Context(), err.Error())

@@ -213,6 +213,14 @@ BEGIN
             NOW() + INTERVAL '7 days'
         ),
         (
+            '019cc05b-d0e6-764d-a207-60cb9fd4d148', 
+            'https://google.com', 
+            'zzM0ofz', 
+            NOW() - INTERVAL '8 days', 
+            '019cc05a-7415-7528-8c5a-e0487fad449c', 
+            NOW() - INTERVAL '1 days'
+        ),
+        (
             '019cc1c7-d1f0-734f-a2b7-a5ee16fbad0b', 
             'https://google.com', 
             'rCfDfqQ', 

@@ -145,24 +145,21 @@ func (h *ApiShortUrlHandler) PostShortUrl(w http.ResponseWriter, r *http.Request
 }
 
 func (h *ApiShortUrlHandler) generateUniqueSlug(ctx context.Context) (string, error) {
-	slug, err := GenerateSlug()
-	if err != nil {
-		return "", err
-	}
-
-	existingShortUrl, err := h.Db.GetShortUrlBySlug(ctx, slug)
-	if err != nil {
-		return "", err
-	}
-
-	for existingShortUrl != nil {
-		existingShortUrl, err = h.Db.GetShortUrlBySlug(ctx, slug)
+	maxAttempts := 3
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		slug, err := GenerateSlug()
 		if err != nil {
 			return "", err
 		}
+		existingShortUrl, err := h.Db.GetShortUrlBySlug(ctx, slug, false)
+		if err != nil {
+			return "", err
+		}
+		if existingShortUrl == nil {
+			return slug, nil
+		}
 	}
-
-	return slug, nil
+	return "", errors.New("couldn't generate a unique slug")
 }
 
 type GetShortUrlsByUserIdResponse struct {

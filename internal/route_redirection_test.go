@@ -30,6 +30,12 @@ func TestRedirection(t *testing.T) {
 				"Location": "https://google.com",
 			},
 		},
+		{
+			Name:               "Expired",
+			slug:               "zzM0ofz",
+			ExpectedStatusCode: http.StatusNotFound,
+			ExpectedHeaders:    map[string]string{},
+		},
 	}
 
 	for _, tc := range cases {

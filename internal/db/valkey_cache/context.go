@@ -70,7 +70,7 @@ func (v *ValkeyCacheContext) CreateShortUrl(ctx context.Context, req types.Creat
 	return v.dbContext.CreateShortUrl(ctx, req, idempotencyKey, request_hash)
 }
 
-func (v *ValkeyCacheContext) GetShortUrlById(ctx context.Context, id uuid.UUID) (*types.ShortUrl, error) {
+func (v *ValkeyCacheContext) GetShortUrlById(ctx context.Context, id uuid.UUID, excludeExpired bool) (*types.ShortUrl, error) {
 	cacheKey := SHORT_URL_ID_PREFIX + id.String()
 	resStr, err := v.getKey(ctx, cacheKey)
 	if err != nil {
@@ -87,7 +87,7 @@ func (v *ValkeyCacheContext) GetShortUrlById(ctx context.Context, id uuid.UUID) 
 		return &r, nil
 	}
 
-	shortUrl, err := v.dbContext.GetShortUrlById(ctx, id)
+	shortUrl, err := v.dbContext.GetShortUrlById(ctx, id, excludeExpired)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (v *ValkeyCacheContext) GetShortUrlById(ctx context.Context, id uuid.UUID) 
 	return shortUrl, nil
 }
 
-func (v *ValkeyCacheContext) GetShortUrlBySlug(ctx context.Context, slug string) (*types.ShortUrl, error) {
+func (v *ValkeyCacheContext) GetShortUrlBySlug(ctx context.Context, slug string, excludeExpired bool) (*types.ShortUrl, error) {
 	cacheKey := SHORT_URL_SLUG_PREFIX + slug
 	resStr, err := v.getKey(ctx, cacheKey)
 	if err != nil {
@@ -126,7 +126,7 @@ func (v *ValkeyCacheContext) GetShortUrlBySlug(ctx context.Context, slug string)
 		return &r, nil
 	}
 
-	shortUrl, err := v.dbContext.GetShortUrlBySlug(ctx, slug)
+	shortUrl, err := v.dbContext.GetShortUrlBySlug(ctx, slug, excludeExpired)
 	if err != nil {
 		return nil, err
 	}

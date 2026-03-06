@@ -43,17 +43,21 @@ func (p *PostgreSQLContext) GetDatabaseVersion(ctx context.Context) (int64, erro
 	})
 }
 
-func (p *PostgreSQLContext) GetShortUrlById(ctx context.Context, id uuid.UUID) (*types.ShortUrl, error) {
+func (p *PostgreSQLContext) GetShortUrlById(ctx context.Context, id uuid.UUID, excludeExpired bool) (*types.ShortUrl, error) {
 	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (*types.ShortUrl, error) {
-		return p.getShortUrlByIdWithTx(ctx, tx, id)
+		return p.getShortUrlByIdWithTx(ctx, tx, id, excludeExpired)
 	})
 }
 
-func (p *PostgreSQLContext) getShortUrlByIdWithTx(ctx context.Context, tx pgx.Tx, id uuid.UUID) (*types.ShortUrl, error) {
+func (p *PostgreSQLContext) getShortUrlByIdWithTx(ctx context.Context, tx pgx.Tx, id uuid.UUID, excludeExpired bool) (*types.ShortUrl, error) {
 	var shortUrl types.ShortUrl
+	query := `SELECT id, destination_url, slug, created_at FROM short_urls WHERE id = $1`
+	if excludeExpired {
+		query += ` AND expires_at > NOW()`
+	}
 
 	// slug should be unique
-	err := tx.QueryRow(ctx, `SELECT id, destination_url, slug, created_at FROM short_urls WHERE id = $1`, id).Scan(
+	err := tx.QueryRow(ctx, query, id).Scan(
 		&shortUrl.Id, &shortUrl.DestinationUrl, &shortUrl.Slug, &shortUrl.CreatedAt,
 	)
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
@@ -75,7 +79,7 @@ func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.Create
 		if !idempotencyKeyInserted {
 			// if the request hash matches the stored hash AND the reference ids match, return the existing object
 			if requestHash == storedRequestHash {
-				return p.getShortUrlByIdWithTx(ctx, tx, storedReferenceId)
+				return p.getShortUrlByIdWithTx(ctx, tx, storedReferenceId, true)
 			}
 
 			// if the request hash doesn't match the stored hash OR the reference ids don't match, return error
@@ -97,12 +101,16 @@ func (p *PostgreSQLContext) CreateShortUrl(ctx context.Context, req types.Create
 	})
 }
 
-func (p *PostgreSQLContext) GetShortUrlBySlug(ctx context.Context, slug string) (*types.ShortUrl, error) {
+func (p *PostgreSQLContext) GetShortUrlBySlug(ctx context.Context, slug string, excludeExpired bool) (*types.ShortUrl, error) {
 	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (*types.ShortUrl, error) {
 		var shortUrl types.ShortUrl
+		query := `SELECT id, destination_url, slug, created_at FROM short_urls WHERE slug = $1`
+		if excludeExpired {
+			query += ` AND expires_at > NOW()`
+		}
 
 		// slug should be unique
-		err := tx.QueryRow(ctx, `SELECT id, destination_url, slug, created_at FROM short_urls WHERE slug = $1`, slug).Scan(
+		err := tx.QueryRow(ctx, query, slug).Scan(
 			&shortUrl.Id, &shortUrl.DestinationUrl, &shortUrl.Slug, &shortUrl.CreatedAt,
 		)
 		if err != nil && errors.Is(err, pgx.ErrNoRows) {
@@ -227,6 +235,7 @@ func (p *PostgreSQLContext) GetShortUrlsByUserId(ctx context.Context, userId uui
 		q := `SELECT id, destination_url, slug, created_at, user_id, expires_at 
 				FROM short_urls
 				WHERE user_id = $1
+				AND expires_at > NOW()
 				ORDER BY created_at DESC
 				LIMIT $2 OFFSET $3`
 		rows, err := tx.Query(ctx, q, userId, size, offset)
