@@ -31,7 +31,6 @@ h1, h2, h3, h4 {
 
 .main {
     min-height: 100vh;
-    padding-top: 20px;
     position: relative;
 }
 
@@ -62,12 +61,13 @@ h1, h2, h3, h4 {
 nav {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
     padding: 0 10px 0 10px;
-    width: 20%;
+    max-width: 160px;
     min-height: 100vh;
     border-right: 1px solid white;
+    padding-bottom: 30px;
 }
 
 nav .logo {
@@ -75,8 +75,14 @@ nav .logo {
     font-size: 40px;
 }
 
+nav .nav-top {
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 20px;
+}
+
 /* `> *` targets direct children only */
-nav > * {
+nav * {
     width: 100%;
     display: flex;
     justify-content: center;
@@ -88,6 +94,7 @@ nav .nav-item {
     height: 40px;
     background: inherit;
     border: none;
+    border-top: 1px solid grey;
     color: var(--emphasis-colour);
     font-size: 25px;
 }
