@@ -20,10 +20,10 @@ import (
 )
 
 const (
-	SizeQueryParamError                    = "Invalid page value, must be a number greater than or equal to 1"
+	SizeQueryParamError                    = "Invalid page value, must be a number greater than or equal to 1 and less than or equal to 50"
 	DefaultSizeQueryParam                  = "20"
-	PageQueryParamError                    = "Invalid page value, must be a number greater than or equal to 0 and less than or equal to 50"
-	DefaultPageQueryParam                  = "0"
+	PageQueryParamError                    = "Invalid page value, must be a number greater than or equal to 1"
+	DefaultPageQueryParam                  = "1"
 	DefaultAnonymousShortUrlTtl     uint32 = 259200 // 3 days
 	MaxAnonymousShortUrlTtl         uint32 = 604800 // 7 Days
 	DefaultAuthenticatedShortUrlTtl uint32 = 604800 // 7 days
@@ -185,6 +185,10 @@ func (h *ApiShortUrlHandler) generateUniqueSlug(ctx context.Context) (string, er
 
 type GetShortUrlsByUserIdResponse struct {
 	Items  []types.ShortUrlResponse `json:"items"`
+	Total  *int                     `json:"total,omitempty"`
+	Next   *bool                    `json:"next,omitempty"`
+	Page   *int                     `json:"page,omitempty"`
+	Size   *int                     `json:"size,omitempty"`
 	Errors []string                 `json:"errors,omitempty"`
 }
 
@@ -204,7 +208,7 @@ func (h *ApiShortUrlHandler) GetShortUrls(w http.ResponseWriter, r *http.Request
 		pageStr = DefaultPageQueryParam
 	}
 	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 0 {
+	if err != nil || page < 1 {
 		EncodeResponse[GetShortUrlsByUserIdResponse](h.Logger, r.Context(), w, http.StatusBadRequest, GetShortUrlsByUserIdResponse{Errors: []string{PageQueryParamError}})
 		return
 	}
@@ -219,14 +223,17 @@ func (h *ApiShortUrlHandler) GetShortUrls(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	shortUrls, err := h.Db.GetShortUrlsByUserId(r.Context(), userIdUuid, page, size)
+	// Subtract 1 from offset because this actually does 0 indexing
+	// For a users persective a page 0 doesn't really exist, page 1 is where they expect to see the first items
+	offset := (page - 1) * size
+	shortUrls, err := h.Db.GetShortUrlsByUserId(r.Context(), userIdUuid, size, offset)
 	if err != nil {
 		EncodeResponse[types.ErrorResponse](h.Logger, r.Context(), w, http.StatusInternalServerError, types.ErrorResponse{Errors: []string{"Something is wrong with the server. Please try again later"}})
 		h.Logger.Error(r.Context(), err.Error())
 		return
 	}
 
-	resp := shortUrlToResponse(shortUrls, h.BaseUrl)
+	resp := shortUrlToResponse(shortUrls, h.BaseUrl, page, size)
 	EncodeResponse[GetShortUrlsByUserIdResponse](h.Logger, r.Context(), w, http.StatusOK, resp)
 }
 
@@ -266,11 +273,24 @@ func (h *ApiShortUrlHandler) DeleteById(w http.ResponseWriter, r *http.Request) 
 	h.Logger.Error(r.Context(), "reached end of short url delete by id. this should not happen")
 }
 
-func shortUrlToResponse(shortUrls []types.ShortUrl, baseUrl string) GetShortUrlsByUserIdResponse {
+func shortUrlToResponse(shortUrls types.GetShortUrlsResult, baseUrl string, page int, size int) GetShortUrlsByUserIdResponse {
 	resp := GetShortUrlsByUserIdResponse{
 		Items: []types.ShortUrlResponse{},
+		Total: &shortUrls.Total,
+		Page:  &page,
+		Size:  &size,
 	}
-	for _, s := range shortUrls {
+
+	var p int
+	if page == 0 {
+		p = 1
+	} else {
+		p = page
+	}
+	next := p*size < shortUrls.Total
+	resp.Next = &next
+
+	for _, s := range shortUrls.Items {
 		r := types.ShortUrlResponse{
 			Id:             &s.Id,
 			DestinationUrl: &s.DestinationUrl,

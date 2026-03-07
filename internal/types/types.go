@@ -40,6 +40,11 @@ type CreateShortUrl struct {
 	ExpiresAt      time.Time
 }
 
+type GetShortUrlsResult struct {
+	Items []ShortUrl
+	Total int
+}
+
 type CreateUserRequest struct {
 	Id           uuid.UUID
 	Username     string

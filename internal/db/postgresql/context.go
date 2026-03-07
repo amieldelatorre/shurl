@@ -227,10 +227,10 @@ func (p *PostgreSQLContext) DeleteExpiredShortUrlsBatched(ctx context.Context, b
 	})
 }
 
-func (p *PostgreSQLContext) GetShortUrlsByUserId(ctx context.Context, userId uuid.UUID, page int, size int) ([]types.ShortUrl, error) {
-	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) ([]types.ShortUrl, error) {
+func (p *PostgreSQLContext) GetShortUrlsByUserId(ctx context.Context, userId uuid.UUID, size int, offset int) (types.GetShortUrlsResult, error) {
+	return ExecWithRetry(ctx, p.logger, p.dbPool, func(tx pgx.Tx) (types.GetShortUrlsResult, error) {
+		ret := types.GetShortUrlsResult{}
 		var shortUrls []types.ShortUrl
-		offset := page * size
 
 		q := `SELECT id, destination_url, slug, created_at, user_id, expires_at 
 				FROM short_urls
@@ -240,7 +240,7 @@ func (p *PostgreSQLContext) GetShortUrlsByUserId(ctx context.Context, userId uui
 				LIMIT $2 OFFSET $3`
 		rows, err := tx.Query(ctx, q, userId, size, offset)
 		if err != nil {
-			return shortUrls, err
+			return ret, err
 		}
 		defer rows.Close()
 
@@ -248,17 +248,28 @@ func (p *PostgreSQLContext) GetShortUrlsByUserId(ctx context.Context, userId uui
 			var r types.ShortUrl
 			err := rows.Scan(&r.Id, &r.DestinationUrl, &r.Slug, &r.CreatedAt, &r.UserId, &r.ExpiresAt)
 			if err != nil {
-				return shortUrls, err
+				return ret, err
 			}
 
 			shortUrls = append(shortUrls, r)
 		}
 
+		ret.Items = shortUrls
 		if err = rows.Err(); err != nil {
-			return shortUrls, err
+			return ret, err
 		}
 
-		return shortUrls, nil
+		var count int
+		err = tx.QueryRow(ctx, `
+			SELECT COUNT(id) FROM short_urls 
+			WHERE user_id = $1
+			AND expires_at > NOW()`, userId).Scan(&count)
+		if err != nil {
+			return ret, err
+		}
+
+		ret.Total = count
+		return ret, nil
 	})
 }
 

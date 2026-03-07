@@ -208,27 +208,27 @@ func (v *ValkeyCacheContext) DeleteExpiredShortUrlsBatched(ctx context.Context, 
 	return v.dbContext.DeleteExpiredShortUrlsBatched(ctx, batchSize)
 }
 
-func (v *ValkeyCacheContext) GetShortUrlsByUserId(ctx context.Context, userId uuid.UUID, page int, size int) ([]types.ShortUrl, error) {
-	var userShortUrls []types.ShortUrl
-	cacheKey := getShortUrlsByUserIdCacheKey(userId, page, size)
+func (v *ValkeyCacheContext) GetShortUrlsByUserId(ctx context.Context, userId uuid.UUID, size int, offset int) (types.GetShortUrlsResult, error) {
+	cacheKey := getShortUrlsByUserIdCacheKey(userId, size, offset)
 
 	resStr, err := v.getKey(ctx, cacheKey)
 	if err != nil {
 		v.logger.Error(ctx, "error getting short urls by user id from cache", "error", err.Error())
 	}
 
+	var userShortUrls types.GetShortUrlsResult
 	if resStr != nil {
 		err = json.Unmarshal([]byte(*resStr), &userShortUrls)
 		if err != nil {
-			return nil, err
+			return userShortUrls, err
 		}
 
 		return userShortUrls, nil
 	}
 
-	userShortUrls, err = v.dbContext.GetShortUrlsByUserId(ctx, userId, page, size)
+	userShortUrls, err = v.dbContext.GetShortUrlsByUserId(ctx, userId, size, offset)
 	if err != nil {
-		return nil, err
+		return userShortUrls, err
 	}
 
 	strData, err := json.Marshal(userShortUrls)
@@ -270,6 +270,6 @@ func (v *ValkeyCacheContext) setKey(ctx context.Context, key string, value strin
 	return err
 }
 
-func getShortUrlsByUserIdCacheKey(userId uuid.UUID, page int, size int) string {
-	return fmt.Sprintf("shurl_user::%s:short_urls:page::%d:size::%d", userId.String(), page, size)
+func getShortUrlsByUserIdCacheKey(userId uuid.UUID, size int, offset int) string {
+	return fmt.Sprintf("shurl_user::%s:short_urls:size::%d:offset::%d", userId.String(), size, offset)
 }

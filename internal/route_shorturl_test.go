@@ -686,21 +686,33 @@ func TestGetShortUrlsByUserId(t *testing.T) {
 	expect1Destinationurl := "https://google.com"
 	expect1Slug := "zzM0ofu"
 	expect1Url := "http://localhost:8080/zzM0ofu"
+	expect1Total := 3
+	expect1Next := true
+	expect1Page := 1
+	expect1Size := 1
 
 	expect2Id := uuid.MustParse("019cc05b-c45d-76f9-ab03-02af299e76ea")
 	expect2Destinationurl := "https://google.com"
 	expect2Slug := "4kJe27"
 	expect2Url := "http://localhost:8080/4kJe27"
+	expect2Total := 3
+	expect2Next := false
+	expect2Page := 3
+	expect2Size := 20
 
 	expect3Id := uuid.MustParse("019cc05b-b0ca-7bf2-863f-2356491c227d")
 	expect3Destinationurl := "https://google.com"
 	expect3Slug := "S0VieOF"
 	expect3Url := "http://localhost:8080/S0VieOF"
+	expect3Total := 3
+	expect3Next := false
+	expect3Page := 1
+	expect3Size := 20
 
 	cases := []GetShortUrlsByUserIdCase{
 		{
 			Name:               "LoginRequired",
-			Page:               -1,
+			Page:               0,
 			Size:               0,
 			UserUuid:           validUserUuid,
 			SkipAccessToken:    true,
@@ -711,7 +723,7 @@ func TestGetShortUrlsByUserId(t *testing.T) {
 		},
 		{
 			Name:               "InvalidPage",
-			Page:               -1,
+			Page:               0,
 			Size:               0,
 			UserUuid:           validUserUuid,
 			ExpectedStatusCode: http.StatusBadRequest,
@@ -721,7 +733,7 @@ func TestGetShortUrlsByUserId(t *testing.T) {
 		},
 		{
 			Name:               "InvalidSize",
-			Page:               0,
+			Page:               1,
 			Size:               0,
 			UserUuid:           validUserUuid,
 			ExpectedStatusCode: http.StatusBadRequest,
@@ -731,7 +743,7 @@ func TestGetShortUrlsByUserId(t *testing.T) {
 		},
 		{
 			Name:               "Expect1",
-			Page:               0,
+			Page:               1,
 			Size:               1,
 			UserUuid:           validUserUuid,
 			ExpectedStatusCode: http.StatusOK,
@@ -745,6 +757,10 @@ func TestGetShortUrlsByUserId(t *testing.T) {
 						UserId:         &validUserUuid,
 					},
 				},
+				Total: &expect1Total,
+				Page:  &expect1Page,
+				Size:  &expect1Size,
+				Next:  &expect1Next,
 			},
 		},
 		{
@@ -755,6 +771,10 @@ func TestGetShortUrlsByUserId(t *testing.T) {
 			ExpectedStatusCode: http.StatusOK,
 			Expected: handlers.GetShortUrlsByUserIdResponse{
 				Items: []types.ShortUrlResponse{},
+				Total: &expect2Total,
+				Page:  &expect2Page,
+				Size:  &expect2Size,
+				Next:  &expect2Next,
 			},
 		},
 		{
@@ -789,6 +809,10 @@ func TestGetShortUrlsByUserId(t *testing.T) {
 						UserId:         &validUserUuid,
 					},
 				},
+				Total: &expect3Total,
+				Page:  &expect3Page,
+				Size:  &expect3Size,
+				Next:  &expect3Next,
 			},
 		},
 	}
