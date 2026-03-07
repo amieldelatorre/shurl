@@ -1,9 +1,10 @@
-import { changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, LOGIN_URL_ENDPOINT, DEFAULT_HEADERS, LOGIN_URL, createShortUrl, addCookieBanner, ALLOW_LOGIN, INFO_BANNER_CONTAINER, USER_SHORT_URL_ENDPONT, isLoggedIn, logout, clearChildren } from '../shared.js';
+import { createSuccessBox, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, LOGIN_URL, createShortUrl, addCookieBanner, USER_SHORT_URL_ENDPONT, isLoggedIn, logout, clearChildren, USER_SHORT_URL_ENDPONT_WITH_ID } from '../shared.js';
 
 
 let loggedIn = await isLoggedIn();
 const SHORT_URLS_TABLE_HEAD = document.getElementById("short-urls-table-heading");
 const SHORT_URLS_TABLE_BODY = document.getElementById("short-urls-table-body");
+let CURRENT_SHORT_URLS = [];
 
 addCookieBanner();
 if (!loggedIn) {
@@ -28,7 +29,7 @@ LOGOUT_BUTTON.addEventListener("click",  () => {
 })
 
 function renderTableHead() {
-  const tableHeaders = ["Short URL", "Destination URL", "Created", "Expiry"];
+  const tableHeaders = ["Short URL", "Destination URL", "Created", "Expiry", "Actions"];
   
   const tableHeadersElem = document.createElement("tr");
 
@@ -40,6 +41,32 @@ function renderTableHead() {
   }
 
   SHORT_URLS_TABLE_HEAD.appendChild(tableHeadersElem);
+}
+
+async function deleteShortUrl(id) {
+  let url = USER_SHORT_URL_ENDPONT_WITH_ID(id);
+  let result = await fetchWithRetry(
+    url,
+    "DELETE",
+  );
+
+  if (!result.isError) {
+    NOTIFICATION_CONTAINER.prepend(createSuccessBox(["Successfully deleted short url", "The link may still work for a while due to caching."]));
+
+    const idx = CURRENT_SHORT_URLS.findIndex(item => item.id === id);
+    if (idx !== -1) {
+      CURRENT_SHORT_URLS.splice(idx, 1);
+    }
+
+    renderShortUrls(CURRENT_SHORT_URLS);
+    return
+  }
+
+  if (result.isJson && result.json)
+    NOTIFICATION_CONTAINER.prepend(createErrorBox(result.json.errors));
+  else
+    NOTIFICATION_CONTAINER.prepend(createErrorBox([GENERIC_SERVER_ERROR_MESSAGE]));
+  return;
 }
 
 function renderShortUrls(items) {
@@ -79,6 +106,21 @@ function renderShortUrls(items) {
     expiry.title = h.expires_at;
     r.appendChild(expiry);
 
+    let action = document.createElement("td");
+    action.classList.add("table-row-actions");
+    let deleteActionBtn = document.createElement("button");
+    deleteActionBtn.classList.add("delete-button");
+    deleteActionBtn.onclick = async () => {
+      await deleteShortUrl(h.id);
+    }
+
+    let deleteActionImg = document.createElement("img");
+    deleteActionImg.classList.add("delete-button-img");
+    deleteActionImg.src = "/_/assets/rubbish-bin-svgrepo-com.svg"
+    deleteActionBtn.appendChild(deleteActionImg);
+    action.appendChild(deleteActionBtn);
+    r.appendChild(action);
+
     SHORT_URLS_TABLE_BODY.appendChild(r);
   }
 }
@@ -90,6 +132,7 @@ export async function getShortUrls(page=1, size=20) {
   )
 
   if (!result.isError) {
+    CURRENT_SHORT_URLS = result.json.items;
     return result.json.items;
   }
 

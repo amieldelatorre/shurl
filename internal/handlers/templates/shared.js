@@ -31,6 +31,7 @@ export const INFO_BANNER_CONTAINER = document.getElementById(INFO_BANNER_CONTAIN
 
 export const USER_SHORT_URL_PATH = "api/v1/me/shorturl";
 export const USER_SHORT_URL_ENDPONT = new URL(USER_SHORT_URL_PATH, API_URL);
+export const USER_SHORT_URL_ENDPONT_WITH_ID = (id)=> { return new URL(`${USER_SHORT_URL_PATH}/${id}`, API_URL);}
 
 export const NOTIFICATION_CONTAINER_ID = "notification-container";
 export const NOTIFICATION_CONTAINER = document.getElementById(NOTIFICATION_CONTAINER_ID);

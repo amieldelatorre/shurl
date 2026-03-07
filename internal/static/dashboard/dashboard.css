@@ -61,3 +61,23 @@
 table, tr, td {
     border: 1px solid white;
 }
+
+.table-row-actions {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.delete-button {
+    width: 30px;
+    height: 30px;
+}
+
+.delete-button:hover {
+    cursor: pointer;
+}
+
+.delete-button-img {
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-colour);
+}

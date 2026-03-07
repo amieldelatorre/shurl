@@ -4,6 +4,7 @@
     --link-colour: #8AB4F8;
     --emphasis-colour: #00ADB5;
     --nav-width: 160px;
+    --background-colour: #222831;
 }
 
 * {
@@ -18,7 +19,7 @@
 }
 
 body {
-    background-color: #222831;
+    background-color: var(--background-colour);
     color: #EEEEEE;
     min-height: 100vh;
     width: 100%;
