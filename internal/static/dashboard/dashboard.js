@@ -1,4 +1,4 @@
-import { createSuccessBox, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, LOGIN_URL, createShortUrl, addCookieBanner, USER_SHORT_URL_ENDPONT, isLoggedIn, logout, clearChildren, USER_SHORT_URL_ENDPONT_WITH_ID } from '../shared.js';
+import { createSuccessBox, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, LOGIN_URL, createShortUrl, addCookieBanner, USER_SHORT_URL_ENDPONT, isLoggedIn, logout, clearChildren, USER_SHORT_URL_ENDPONT_WITH_ID, TIMEOUT_IDS } from '../shared.js';
 
 
 let loggedIn = await isLoggedIn();
@@ -88,10 +88,23 @@ function renderShortUrls(items) {
     
     let shortUrl = document.createElement("td");
     shortUrl.textContent = h.url;
+    shortUrl.title = "click to copy";
+    shortUrl.classList.add("pointer-cursor");
+    shortUrl.addEventListener("click", () => {
+      navigator.clipboard.writeText(h.url).then(() => {
+        shortUrl.textContent = "copied!";
+        TIMEOUT_IDS.push(setTimeout(() => {
+          shortUrl.textContent = h.url;
+        }, 5000));
+      }).catch((error) => {
+           NOTIFICATION_CONTAINER.prepend(createErrorBox(["Failed to copy url"]));
+        });
+    });
     r.appendChild(shortUrl);
 
     let destinationUrl = document.createElement("td");
     destinationUrl.textContent = h.destination_url;
+    destinationUrl.title = h.destination_url;
     r.appendChild(destinationUrl);
 
     let created = document.createElement("td");

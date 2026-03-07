@@ -289,6 +289,10 @@ nav .nav-item:hover {
     text-overflow: ellipsis;
 }
 
+.pointer-cursor {
+    cursor: pointer;
+}
+
 form[inert] {
     opacity: 0.5;
     border: 1px solid red;
