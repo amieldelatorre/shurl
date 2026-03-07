@@ -1,0 +1,50 @@
+.main {
+    display: flex;
+}
+
+.content {
+    width: 100%;
+    padding: 20px;
+    margin-left: var(--nav-width);
+}
+
+.create-short-url-form-wrapper {
+    border: 1px dotted white;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.create-short-url-form-wrapper legend {
+    padding: 0 10px;
+    font-weight: bold;
+}
+
+.create-short-url > * {
+    height: 30px;
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 8px;
+    border: 1px solid grey;
+    border-radius: 8px;
+}
+
+.url-ttl {
+    width: auto;
+    min-width: 50px;
+    text-align: right;
+}
+
+.ttl-units {
+    width: 90px;
+}
+
+.create-short-url-submit-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 30px;
+    width: 150px;
+    border: 1px solid var(--emphasis-colour);
+    border-radius: 8px;
+    cursor: pointer;
+}

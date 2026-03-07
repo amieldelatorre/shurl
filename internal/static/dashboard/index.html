@@ -32,6 +32,37 @@
             <button id="logout-button" class="nav-item">Logout</button>
         </nav>
         <div class="content">
+            <fieldset class="create-short-url-form-wrapper">
+                <legend>Create Short Url</legend>
+                <form id="create-short-url" class="create-short-url">
+                    <input 
+                        id="url-input" 
+                        type="url" 
+                        placeholder="https://yoururl.com/here"
+                        required
+                    />
+                    <input 
+                        id="url-ttl"
+                        class="url-ttl"
+                        type="number"
+                        value="7"
+                        size="3"
+                        required
+                    />
+                    <select id="ttl-units" class="ttl-units"> <!--value here is how many seconds for each unit-->
+                        <option value="60">Minute(s)</option>
+                        <option value="3600">Hour(s)</option>
+                        <option value="86400" selected>Day(s)</option>
+                        <option value="604800">Week(s)</option>
+                        <option value="18144000">Months(s)</option> <!--counted as 30 days-->
+                    </select>
+                    <button class="create-short-url-submit-button" type="submit">
+                        Submit
+                    </button>
+                </form>
+                <div id="success-links">
+                </div><!--End of div id success-links-->
+            </fieldset>
         </div><!--End of div classcontent-->
     </div><!--End of div class main-->
     <script type="module" src="/_/shared.js"></script>

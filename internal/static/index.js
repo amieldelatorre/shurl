@@ -1,4 +1,4 @@
-import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm'
+import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm';
 import { createCloseButton, changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, SHORT_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, TIMEOUT_IDS, addCookieBanner, isLoggedIn, sleep, ALLOW_ANONYMOUS, LOGIN_URL, ALLOW_LOGIN, ALLOW_REGISTRATION, INFO_BANNER_CONTAINER } from './shared.js';
 
 const CREATE_URL_FORM_ID = "index-create-url-form";
@@ -81,7 +81,7 @@ async function onSubmit(event) {
 
     if (!result.isError) {
         const successfulLinkCreateDiv = createSuccessfulLinkBox(result.json.destination_url, result.json.url, result.json.expires_at);
-        const parent = document.getElementById("index-success-links");
+        const parent = document.getElementById("success-links");
         parent.prepend(successfulLinkCreateDiv);
 
         changeButtonToSuccess(submittingButton, () => {

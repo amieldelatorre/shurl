@@ -3,6 +3,7 @@
     --success-colour: #4caf50;
     --link-colour: #8AB4F8;
     --emphasis-colour: #00ADB5;
+    --nav-width: 160px;
 }
 
 * {
@@ -59,12 +60,16 @@ h1, h2, h3, h4 {
 }
 
 nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
     padding: 0 10px 0 10px;
-    max-width: 160px;
+    width: var(--nav-width);
     min-height: 100vh;
     border-right: 1px solid white;
     padding-bottom: 30px;
@@ -221,6 +226,66 @@ nav .nav-item:hover {
     background: transparent;
     height: 30px;
     width: 30px;
+}
+
+#success-links {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 0 auto;
+    width: 95%;
+    max-width: 500px;
+    padding: 10px;
+}
+
+.successful-link-create {
+    position: relative;
+    padding: 5px;
+    border: solid 1px var(--success-colour);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.successful-link-create-header {
+    display: inline-block;
+}
+
+.short-url-created {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    align-items: center;
+    border: dotted 2px grey;
+    border-radius: 6px;
+    padding: 3px;
+    margin-bottom: 5px;
+}
+
+.short-url-created p {
+    display: inline-block;
+    border-radius: 6px;
+    margin-right: 5px;
+}
+
+.short-url-created button {
+    padding: 3px;
+    border: solid 1px grey;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.arrow-to-destination-svg {
+    max-height: 30px;
+    vertical-align: middle;
+}
+
+.destination-url {
+    display: inline-block;
+    max-width: calc(100% - 40px);
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 form[inert] {
