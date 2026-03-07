@@ -48,3 +48,16 @@
     border-radius: 8px;
     cursor: pointer;
 }
+
+.short-urls {
+    margin-top: 30px;
+}
+
+.short-urls-table {
+    margin-top: 10px;
+    width: 100%;
+}
+
+table, tr, td {
+    border: 1px solid white;
+}

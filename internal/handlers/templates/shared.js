@@ -29,6 +29,9 @@ export const VALIDATE_URL_ENDPOINT = new URL(VALIDATE_URL_PATH, API_URL);
 export const INFO_BANNER_CONTAINER_ID = "info-banner";
 export const INFO_BANNER_CONTAINER = document.getElementById(INFO_BANNER_CONTAINER_ID);
 
+export const USER_SHORT_URL_PATH = "api/v1/me/shorturl";
+export const USER_SHORT_URL_ENDPONT = new URL(USER_SHORT_URL_PATH, API_URL);
+
 export const NOTIFICATION_CONTAINER_ID = "notification-container";
 export const NOTIFICATION_CONTAINER = document.getElementById(NOTIFICATION_CONTAINER_ID);
 export const GENERIC_SERVER_ERROR_MESSAGE = "Something went wrong with the server, please try again later";
@@ -176,17 +179,25 @@ export function removeClassAfterTimeout(button, classToRemove, ms, fn) {
     }, ms));
 }
 
-export async function fetchWithRetry(url, method, headers, body, maxAttempts = 3, retryBaseDelay = 150, defaultTimeoutMs = 2500) {
+export async function fetchWithRetry(url, method, headers = null, body = null, maxAttempts = 3, retryBaseDelay = 150, defaultTimeoutMs = 2500) {
     let result = new FetchResponse();
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
-            let response = await fetch(url, {
+            let fetchOptions = {
                 method: method,
-                headers: headers,
-                body: body,
                 signal: AbortSignal.timeout(defaultTimeoutMs)
-            });
+            };
+
+            if (headers != null) {
+                fetchOptions.headers = headers
+            }
+
+            if (body != null) {
+                fetchOptions.body = body;
+            }
+
+            let response = await fetch(url, fetchOptions);
 
             if (response.ok) {
                 result.isError = false;
