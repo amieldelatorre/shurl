@@ -1,5 +1,5 @@
 import { v7 as uuidv7 } from 'https://cdn.jsdelivr.net/npm/uuid@13.0.0/+esm';
-import { createCloseButton, changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, SHORT_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, TIMEOUT_IDS, addCookieBanner, isLoggedIn, sleep, ALLOW_ANONYMOUS, LOGIN_URL, ALLOW_LOGIN, ALLOW_REGISTRATION, INFO_BANNER_CONTAINER } from './shared.js';
+import { createCloseButton, changeButtonToLoading, changeButtonToSuccess, changeButtonToNormal, BUTTON_NORMAL_TEXT, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_MESSAGE, NOTIFICATION_CONTAINER, changeButtonToFailed, SHORT_URL_ENDPONT, DEFAULT_HEADERS, HEADER_IDEMPOTENCY_KEY, TIMEOUT_IDS, addCookieBanner, isLoggedIn, sleep, ALLOW_ANONYMOUS, LOGIN_URL, ALLOW_LOGIN, ALLOW_REGISTRATION, INFO_BANNER_CONTAINER, DASHBOARD_URL, createSuccessBox } from './shared.js';
 
 const CREATE_URL_FORM_ID = "index-create-url-form";
 const CREATE_URL_FORM = document.getElementById(CREATE_URL_FORM_ID);
@@ -121,7 +121,13 @@ document.addEventListener("click", function (event) {
 let loggedIn = await isLoggedIn();
 
 addCookieBanner();
-if (!loggedIn && !ALLOW_ANONYMOUS && !ALLOW_LOGIN && !ALLOW_REGISTRATION) {
+if (loggedIn) {
+    CREATE_URL_FORM.inert = true;
+    NOTIFICATION_CONTAINER.prepend(createSuccessBox(["Logged in, redirecting to dashboard in 1 second"]));
+    await sleep(1000);
+    window.location.href = DASHBOARD_URL;
+}
+else if (!loggedIn && !ALLOW_ANONYMOUS && !ALLOW_LOGIN && !ALLOW_REGISTRATION) {
     CREATE_URL_FORM.inert = true;
 
 
