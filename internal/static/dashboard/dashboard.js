@@ -4,7 +4,23 @@ import { createSuccessBox, fetchWithRetry, createErrorBox, GENERIC_SERVER_ERROR_
 let loggedIn = await isLoggedIn();
 const SHORT_URLS_TABLE_HEAD = document.getElementById("short-urls-table-heading");
 const SHORT_URLS_TABLE_BODY = document.getElementById("short-urls-table-body");
-let CURRENT_SHORT_URLS = [];
+let CURRENT_SHORT_URLS = {};
+
+function getPageUrlParam() {
+  let urlParams = new URLSearchParams(window.location.search);
+  let page = Number(urlParams.get("page"));
+  if (!Number.isInteger(page) || page === 0)
+    page = 1;
+  return page;
+}
+
+function getSizeUrlParam() {
+  let urlParams = new URLSearchParams(window.location.search);
+  let size = Number(urlParams.get("size"));
+  if (!Number.isInteger(size) || size === 0)
+    size = 20;
+  return size;
+}
 
 addCookieBanner();
 if (!loggedIn) {
@@ -29,7 +45,7 @@ LOGOUT_BUTTON.addEventListener("click",  () => {
 })
 
 function renderTableHead() {
-  const tableHeaders = ["Short URL", "Destination URL", "Created", "Expiry", "Actions"];
+  const tableHeaders = ["#", "Short URL", "Destination URL", "Created", "Expiry", "Actions"];
   
   const tableHeadersElem = document.createElement("tr");
 
@@ -58,7 +74,9 @@ async function deleteShortUrl(id) {
       CURRENT_SHORT_URLS.splice(idx, 1);
     }
 
-    renderShortUrls(CURRENT_SHORT_URLS);
+    CURRENT_SHORT_URLS.total -= 1;
+
+    renderShortUrls(CURRENT_SHORT_URLS, CURRENT_SHORT_URLS.total);
     return
   }
 
@@ -69,7 +87,7 @@ async function deleteShortUrl(id) {
   return;
 }
 
-function renderShortUrls(items) {
+function renderShortUrls(shortUrls) {
   clearChildren(SHORT_URLS_TABLE_HEAD);
   renderTableHead();
   clearChildren(SHORT_URLS_TABLE_BODY);
@@ -82,9 +100,14 @@ function renderShortUrls(items) {
     minute: '2-digit',
     hour12: true
   };
-
-  for (let h of items) {
+  let elementNum = shortUrls.page * shortUrls.size - shortUrls.size + 1;
+  for (let h of shortUrls.items) {
     let r = document.createElement("tr");
+
+    let num = document.createElement("td");
+    num.textContent = elementNum;
+    elementNum++;
+    r.appendChild(num);
     
     let shortUrl = document.createElement("td");
     shortUrl.textContent = h.url;
@@ -98,6 +121,7 @@ function renderShortUrls(items) {
         }, 5000));
       }).catch((error) => {
            NOTIFICATION_CONTAINER.prepend(createErrorBox(["Failed to copy url"]));
+           console.log(error);
         });
     });
     r.appendChild(shortUrl);
@@ -136,17 +160,27 @@ function renderShortUrls(items) {
 
     SHORT_URLS_TABLE_BODY.appendChild(r);
   }
+
+  const allShortUrlsCounter = document.querySelectorAll("p.short-urls-counter");
+  allShortUrlsCounter.forEach((p) => {
+    let currlength = shortUrls.page * shortUrls.size;
+    let start = currlength - shortUrls.size + 1;
+    p.textContent = `${start} - ${currlength} of ${shortUrls.total}`
+  });
 }
 
 export async function getShortUrls(page=1, size=20) {
+  let url = USER_SHORT_URL_ENDPONT();
+  url.searchParams.set("page", page);
+  url.searchParams.set("size", size);
   let result = await fetchWithRetry(
-    USER_SHORT_URL_ENDPONT,
+    url,
     "GET",
   )
 
   if (!result.isError) {
-    CURRENT_SHORT_URLS = result.json.items;
-    return result.json.items;
+    CURRENT_SHORT_URLS = result.json;
+    return result.json;
   }
 
   // Chose not to handle timeout explicitly, it should be retryable anyway and means something is wrong with the server.
@@ -157,5 +191,62 @@ export async function getShortUrls(page=1, size=20) {
   return;
 }
 
-let shortUrls = await getShortUrls();
+function togglePreviousButtons() {
+  const allPreviousButtons = document.querySelectorAll("button.table-nav-previous-button");
+  allPreviousButtons.forEach(btn => {
+    if (CURRENT_SHORT_URLS.page <= 1) {
+      btn.disabled = true;
+    } else {
+      btn.disabled = false;
+    }
+  });
+}
+
+function toggleNextButtons() {
+  const allNextButtons = document.querySelectorAll("button.table-nav-next-button");
+  allNextButtons.forEach(btn => {
+    if (!CURRENT_SHORT_URLS.next) {
+      btn.disabled = true;
+    } else {
+      btn.disabled = false;
+    }
+  });
+}
+
+let shortUrls = await getShortUrls(getPageUrlParam(), getSizeUrlParam());
 renderShortUrls(shortUrls);
+togglePreviousButtons();
+toggleNextButtons();
+
+
+const allPreviousButtons = document.querySelectorAll("button.table-nav-previous-button");
+allPreviousButtons.forEach(btn => {
+  btn.addEventListener("click", async () => {
+    let previousPage = getPageUrlParam() - 1;
+    let res = await getShortUrls(previousPage, getSizeUrlParam());
+    renderShortUrls(res);
+
+    let newUrl = new URL(window.location.href);
+    newUrl.searchParams.set("page", previousPage);
+    history.pushState(null, null, newUrl);
+
+    togglePreviousButtons();
+    toggleNextButtons();
+  });
+});
+
+const allNextButtons = document.querySelectorAll("button.table-nav-next-button");
+allNextButtons.forEach(btn => {
+  btn.addEventListener("click", async () => {
+    let nextPage = getPageUrlParam() + 1;
+    let res = await getShortUrls(nextPage, getSizeUrlParam());
+    renderShortUrls(res);
+
+    let newUrl = new URL(window.location.href);
+    newUrl.searchParams.set("page", nextPage);
+    history.pushState(null, null, newUrl);
+
+    togglePreviousButtons();
+    toggleNextButtons();
+  });
+});
