@@ -57,7 +57,7 @@ func GetDatabaseContext(ctx context.Context, config config.Config, logger utils.
 		logger.Info(ctx, "skipped migrations")
 	}
 
-	logger.Info(ctx, "Ssccessfully connected to the database")
+	logger.Info(ctx, "Successfully connected to the database")
 
 	dbContext := postgresql.NewPostreSQLContext(logger, dbMigrations.DbPool)
 	return dbContext
