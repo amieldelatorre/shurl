@@ -12,6 +12,7 @@ import (
 	"github.com/amieldelatorre/shurl/internal/utils"
 	"github.com/google/uuid"
 	glide "github.com/valkey-io/valkey-glide/go/v2"
+	"github.com/valkey-io/valkey-glide/go/v2/models"
 	"github.com/valkey-io/valkey-glide/go/v2/options"
 )
 
@@ -22,10 +23,9 @@ type ValkeyCacheContext struct {
 }
 
 const (
-	DB_VERSION_KEY        = "goose_db_version_max_id"
-	SHORT_URL_ID_PREFIX   = "short_url:id:"
-	SHORT_URL_SLUG_PREFIX = "short_url:slug:"
-	USER_EMAIL_PREFIX     = "shurl_user:email:"
+	DB_VERSION_KEY               = "goose_db_version_max_id"
+	USER_EMAIL_PREFIX            = "shurl_user:email::"
+	CACHE_DOUBLE_DELETE_SLEEP_MS = 250
 )
 
 func NewValkeyCacheContext(logger utils.CustomJsonLogger, client *glide.Client, dbContext db.DbContext) *ValkeyCacheContext {
@@ -67,11 +67,25 @@ func (v *ValkeyCacheContext) GetDatabaseVersion(ctx context.Context) (int64, err
 }
 
 func (v *ValkeyCacheContext) CreateShortUrl(ctx context.Context, req types.CreateShortUrl, idempotencyKey uuid.UUID, request_hash string) (*types.ShortUrl, error) {
-	return v.dbContext.CreateShortUrl(ctx, req, idempotencyKey, request_hash)
+	delKeys := func() {
+		if req.UserId != nil {
+			err := v.delUserShortUrlQueries(ctx, getShortUrlsByUserIdCachePrefix(*req.UserId)+"*")
+			if err != nil {
+				v.logger.Error(ctx, "couldn't unlink keys from valkey", "error", err.Error())
+			}
+		}
+	}
+
+	delKeys()
+	res, resErr := v.dbContext.CreateShortUrl(ctx, req, idempotencyKey, request_hash)
+	time.Sleep(CACHE_DOUBLE_DELETE_SLEEP_MS * time.Millisecond)
+	delKeys()
+
+	return res, resErr
 }
 
 func (v *ValkeyCacheContext) GetShortUrlById(ctx context.Context, id uuid.UUID, excludeExpired bool) (*types.ShortUrl, error) {
-	cacheKey := SHORT_URL_ID_PREFIX + id.String()
+	cacheKey := getShortUrlByIdCachePrefix(id)
 	resStr, err := v.getKey(ctx, cacheKey)
 	if err != nil {
 		v.logger.Error(ctx, "error getting short url by id from cache", "error", err.Error())
@@ -110,7 +124,7 @@ func (v *ValkeyCacheContext) GetShortUrlById(ctx context.Context, id uuid.UUID, 
 }
 
 func (v *ValkeyCacheContext) GetShortUrlBySlug(ctx context.Context, slug string, excludeExpired bool) (*types.ShortUrl, error) {
-	cacheKey := SHORT_URL_SLUG_PREFIX + slug
+	cacheKey := getShortUrlBySlugCachePrefix(slug)
 	resStr, err := v.getKey(ctx, cacheKey)
 	if err != nil {
 		v.logger.Error(ctx, "error getting short url by slug from cache", "error", err.Error())
@@ -246,7 +260,23 @@ func (v *ValkeyCacheContext) GetShortUrlsByUserId(ctx context.Context, userId uu
 }
 
 func (v *ValkeyCacheContext) DeleteShortUrlById(ctx context.Context, userId uuid.UUID, shortUrlId uuid.UUID) (types.DeleteShortUrlResult, error) {
-	return v.dbContext.DeleteShortUrlById(ctx, userId, shortUrlId)
+	delKeys := func() {
+		err := v.delKeys(ctx, []string{getShortUrlByIdCachePrefix(shortUrlId)})
+		if err != nil {
+			v.logger.Error(ctx, "couldn't delete keys from valkey", "error", err.Error())
+		}
+		err = v.delUserShortUrlQueries(ctx, getShortUrlsByUserIdCachePrefix(userId)+"*")
+		if err != nil {
+			v.logger.Error(ctx, "couldn't unlink keys from valkey", "error", err.Error())
+		}
+	}
+
+	delKeys()
+	result, resultErr := v.dbContext.DeleteShortUrlById(ctx, userId, shortUrlId)
+	time.Sleep(CACHE_DOUBLE_DELETE_SLEEP_MS * time.Millisecond)
+	delKeys()
+
+	return result, resultErr
 }
 
 func (v *ValkeyCacheContext) getKey(ctx context.Context, key string) (*string, error) {
@@ -270,6 +300,56 @@ func (v *ValkeyCacheContext) setKey(ctx context.Context, key string, value strin
 	return err
 }
 
+func (v *ValkeyCacheContext) delKeys(ctx context.Context, keys []string) error {
+	deleted, err := v.client.Unlink(ctx, keys)
+	if err != nil {
+		return err
+	}
+	v.logger.Debug(ctx, "deleted keys from valkey", "count", deleted)
+	return nil
+}
+
+func (v *ValkeyCacheContext) delUserShortUrlQueries(ctx context.Context, keyPrefix string) error {
+	cursor := models.NewCursor()
+	scanOpts := options.NewScanOptions().SetMatch(keyPrefix).SetCount(100)
+	for {
+		res, err := v.client.ScanWithOptions(ctx, cursor, *scanOpts)
+		if err != nil {
+			return err
+		}
+
+		keys := res.Data
+		if len(keys) <= 0 {
+			return nil
+		}
+
+		deleted, err := v.client.Unlink(ctx, keys)
+		if err != nil {
+			return err
+		}
+
+		v.logger.Debug(ctx, "Unlinked keys from valkey", "count", deleted)
+
+		cursor = res.Cursor
+		if cursor.IsFinished() {
+			break
+		}
+	}
+	return nil
+}
+
+func getShortUrlsByUserIdCachePrefix(userId uuid.UUID) string {
+	return fmt.Sprintf("{shurl_user:id::%s}:short_urls_query", userId.String())
+}
+
 func getShortUrlsByUserIdCacheKey(userId uuid.UUID, size int, offset int) string {
-	return fmt.Sprintf("shurl_user::%s:short_urls:size::%d:offset::%d", userId.String(), size, offset)
+	return fmt.Sprintf("%s:size::%d:offset::%d", getShortUrlsByUserIdCachePrefix(userId), size, offset)
+}
+
+func getShortUrlByIdCachePrefix(id uuid.UUID) string {
+	return fmt.Sprintf("short_url:id::%s", id.String())
+}
+
+func getShortUrlBySlugCachePrefix(slug string) string {
+	return fmt.Sprintf("short_url:slug::%s", slug)
 }

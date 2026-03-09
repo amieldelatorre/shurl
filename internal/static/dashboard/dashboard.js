@@ -69,14 +69,23 @@ async function deleteShortUrl(id) {
   if (!result.isError) {
     NOTIFICATION_CONTAINER.prepend(createSuccessBox(["Successfully deleted short url", "The link may still work for a while due to caching."]));
 
-    const idx = CURRENT_SHORT_URLS.findIndex(item => item.id === id);
+    const idx = CURRENT_SHORT_URLS.items.findIndex(item => item.id === id);
     if (idx !== -1) {
-      CURRENT_SHORT_URLS.splice(idx, 1);
+      CURRENT_SHORT_URLS.items.splice(idx, 1);
     }
 
     CURRENT_SHORT_URLS.total -= 1;
 
     renderShortUrls(CURRENT_SHORT_URLS, CURRENT_SHORT_URLS.total);
+
+    // const allTableBodyRows = document.querySelectorAll("tbody tr");
+    // const allShortUrlsCounter = document.querySelectorAll("p.short-urls-counter");
+    // allShortUrlsCounter.forEach((p) => {
+    //   let start = shortUrls.page * shortUrls.size - shortUrls.size + 1;
+    //   let end = start + allTableBodyRows.length;
+    //   p.textContent = `${start} - ${end} of ${shortUrls.total}`
+    // });
+
     return
   }
 
@@ -146,6 +155,7 @@ function renderShortUrls(shortUrls) {
     let action = document.createElement("td");
     action.classList.add("table-row-actions");
     let deleteActionBtn = document.createElement("button");
+    deleteActionBtn.title = "delete";
     deleteActionBtn.classList.add("delete-button");
     deleteActionBtn.onclick = async () => {
       await deleteShortUrl(h.id);
@@ -165,6 +175,12 @@ function renderShortUrls(shortUrls) {
   allShortUrlsCounter.forEach((p) => {
     let currlength = shortUrls.page * shortUrls.size;
     let start = currlength - shortUrls.size + 1;
+
+    if (currlength > shortUrls.total)
+      currlength = shortUrls.total;
+    if (shortUrls.total === 0)
+      start = 0;
+
     p.textContent = `${start} - ${currlength} of ${shortUrls.total}`
   });
 }

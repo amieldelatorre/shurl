@@ -180,7 +180,7 @@ export function removeClassAfterTimeout(button, classToRemove, ms, fn) {
     }, ms));
 }
 
-export async function fetchWithRetry(url, method, headers = null, body = null, maxAttempts = 3, retryBaseDelay = 150, defaultTimeoutMs = 2500) {
+export async function fetchWithRetry(url, method, headers = null, body = null, maxAttempts = 3, retryBaseDelay = 150, defaultTimeoutMs = 1000000) {
     let result = new FetchResponse();
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
