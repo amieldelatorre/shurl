@@ -1,4 +1,4 @@
-FROM golang:1.26.0-trixie AS build
+FROM golang:1.26.1-trixie AS build
 WORKDIR /build
 
 COPY go.mod go.sum ./
@@ -10,7 +10,7 @@ COPY ./main.go ./
 RUN ls -alh
 RUN GOOS=linux go build .
 
-FROM debian:13.3 AS final
+FROM debian:13.4 AS final
 RUN apt-get update && apt-get install curl netcat-openbsd bind9-dnsutils -y
 RUN useradd -ms /bin/sh -u 3333 shurl
 
