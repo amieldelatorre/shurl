@@ -29,7 +29,7 @@ services:
 
 ##################################### Valkey #####################################
   valkey:
-    image: valkey/valkey:9.0.3
+    image: valkey/valkey:9.0.4
     restart: unless-stopped
     container_name: valkey
     security_opt:
