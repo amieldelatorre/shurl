@@ -1,4 +1,4 @@
-FROM golang:1.26.5-trixie AS build
+FROM golang:1.26.6-trixie AS build
 WORKDIR /build
 
 COPY go.mod go.sum ./
